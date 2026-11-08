@@ -1,46 +1,52 @@
-# dependencies
+# ---- Python / backend ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# ---- Node / frontend ----
 node_modules/
 .pnp
 .pnp.js
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
 
-# next.js
-.next/
-out/
-build/
-dist/
-
-# env
+# ---- env ----
 .env
 .env.*
 !.env.example
 
-# database
+# ---- database ----
 *.db
 *.db-journal
 *.sqlite
 *.sqlite3
-prisma/dev.db*
 
-# 原始素材：可能含他人姓名/头像/邮件，绝不入库
+# ---- 原始素材：可能含他人姓名/头像/邮件，绝不入库 ----
 storage/
 uploads/
 tmp/
 
-# test / tooling
+# ---- test / tooling ----
 coverage/
 .vercel
 .turbo
-*.tsbuildinfo
-next-env.d.ts
 
-# os / editor
+# ---- os / editor ----
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
 
-# logs
+# ---- logs ----
 *.log
 npm-debug.log*
 pnpm-debug.log*
