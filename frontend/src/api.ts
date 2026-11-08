@@ -180,6 +180,8 @@ export type VerifyResult = {
     note: string
   }[]
   checked_at: string
+  /** 仅 POST /api/verify/url 返回；检索路径没有该字段 */
+  mode?: 'url'
 }
 
 export type Capability = { key: string; name: string; level: 'live' | 'entry'; note: string }
@@ -276,6 +278,15 @@ export function patchEvent(id: string, field: string, value: string) {
 export function startVerify(id: string) {
   return request<{ job_id: string }>(`/api/events/${encodeURIComponent(id)}/verify`, {
     method: 'POST',
+  })
+}
+
+/** 检索兜底：不搜索，只抓取用户提供的官方链接并逐字段核对。 */
+export function verifyByUrl(eventId: string, url: string) {
+  return request<VerifyResult>('/api/verify/url', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ event_id: eventId, url }),
   })
 }
 
