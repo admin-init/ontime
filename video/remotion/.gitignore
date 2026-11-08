@@ -1,0 +1,5 @@
+node_modules/
+public/media/
+public/bgm.mp3
+.remotion/
+out/
