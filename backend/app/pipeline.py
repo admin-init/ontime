@@ -473,7 +473,7 @@ async def run_ingest(job_id: str) -> None:
 
 
 async def run_verify(job_id: str) -> None:
-    from app.verify import verify_event  # 避免循环导入
+    from app.verify import verify_event, verify_url  # 避免循环导入
 
     db: Session = SessionLocal()
     job = db.get(Job, job_id)
@@ -482,18 +482,26 @@ async def run_verify(job_id: str) -> None:
         return
     try:
         job.state = "running"
+        by_url = job.type == "verify_url"
         job.stage = {
-            "stage": "search",
+            "stage": "fetch" if by_url else "search",
             "steps": [
-                {"key": "search", "label": "检索官方来源", "state": "active"},
-                {"key": "fetch", "label": "读取原文", "state": "todo"},
+                {
+                    "key": "search",
+                    "label": "打开指定链接" if by_url else "检索官方来源",
+                    "state": "done" if by_url else "active",
+                },
+                {"key": "fetch", "label": "读取原文", "state": "active" if by_url else "todo"},
                 {"key": "judge", "label": "核对适用性", "state": "todo"},
             ],
         }
         db.commit()
         event = db.get(Event, job.payload["event_id"])
         assert event is not None
-        result = await verify_event(db, event, job)
+        if by_url:
+            result = await verify_url(db, event, job, job.payload["url"])
+        else:
+            result = await verify_event(db, event, job)
         job.result = result
         job.state = "done"
         db.commit()

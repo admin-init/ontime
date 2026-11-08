@@ -410,6 +410,55 @@ async def verify(event_id: str, db: Session = Depends(get_db)):
     return {"job_id": job.id}
 
 
+class VerifyUrlBody(BaseModel):
+    event_id: str
+    url: str
+
+
+@router.post("/verify/url")
+async def verify_by_url(body: VerifyUrlBody, db: Session = Depends(get_db)):
+    """按用户提供的官方链接核实（检索兜底路径）。
+
+    不检索，只抓这一页；同步返回与 `/api/events/{id}/verify` 相同的 result，
+    额外带 `mode: "url"`。内部仍记一条 type=verify_url 的 job 留痕。
+    """
+    event = db.get(Event, body.event_id)
+    if not event:
+        raise HTTPException(404, "事件不存在")
+    url = (body.url or "").strip()
+    if not url.lower().startswith(("http://", "https://")) or len(url) > 2000:
+        raise HTTPException(400, "请提供 http/https 链接")
+
+    job = Job(
+        type="verify_url",
+        payload={"event_id": event.id, "url": url},
+        state="running",
+        stage={"stage": "fetch", "steps": [], "message": "正在打开你提供的链接…"},
+    )
+    db.add(job)
+    db.commit()
+
+    from app.verify import verify_url
+
+    try:
+        result = await verify_url(db, event, job, url)
+    except Exception as e:  # noqa: BLE001
+        db.rollback()
+        failed = db.get(Job, job.id)
+        if failed:
+            failed.state = "failed"
+            failed.last_error = str(e)[:800]
+            db.commit()
+        raise HTTPException(500, f"核实失败：{str(e)[:200]}") from e
+
+    job = db.get(Job, job.id)
+    if job:
+        job.result = result
+        job.state = "done"
+    db.commit()
+    return result
+
+
 @router.get("/events/{event_id}/ics")
 def export_ics(event_id: str, db: Session = Depends(get_db)):
     from icalendar import Alarm, Calendar, Event as ICalEvent
@@ -700,8 +749,10 @@ def toggle_task(task_id: str, db: Session = Depends(get_db)):
 @router.get("/today")
 def today(db: Session = Depends(get_db)):
     events = db.scalars(select(Event).where(Event.state != "merged").order_by(Event.created_at.desc())).all()
+    # 行动台只服务已确认事件：候选事件的任务还没过用户确认，不能提前催办
+    confirmed = [e for e in events if e.state == "confirmed"]
     tasks = []
-    for e in events:
+    for e in confirmed:
         for t in e.tasks:
             tasks.append(
                 {

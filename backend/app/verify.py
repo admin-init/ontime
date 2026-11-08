@@ -295,48 +295,15 @@ async def judge_page(event: Event, page: dict, current: dict[str, str]) -> Judge
 FIELD_LABELS = {**EVENT_LABELS, **TASK_LABELS}
 
 
-async def verify_event(db: Session, event: Event, job: Job) -> dict:
-    queries = [
-        f"{settings.school_name} {settings.college_name} {event.title}",
-        f"{settings.school_name} {event.title} 通知",
-        f"{event.title} site:{settings.school_domain}",
-    ]
-    seen: set[str] = set()
-    hits: list[dict] = []
-    for q in queries:
-        for hit in await search_web(q, limit=5):
-            if hit["url"] in seen:
-                continue
-            seen.add(hit["url"])
-            hits.append(hit)
-        if len(hits) >= 5:
-            break
-
-    job.stage = {
-        "stage": "fetch",
-        "steps": [
-            {"key": "search", "label": "检索官方来源", "state": "done"},
-            {"key": "fetch", "label": "读取原文", "state": "active"},
-            {"key": "judge", "label": "核对适用性", "state": "todo"},
-        ],
-        "message": f"找到 {len(hits)} 条候选，正在读取原文…",
-    }
-    db.commit()
-
-    pages = await asyncio.gather(*[fetch_page(h["url"]) for h in hits[:4]])
-    pages = [p for p in pages if p and len(p["text"]) > 100]
-
-    job.stage = {
-        "stage": "judge",
-        "steps": [
-            {"key": "search", "label": "检索官方来源", "state": "done"},
-            {"key": "fetch", "label": "读取原文", "state": "done"},
-            {"key": "judge", "label": "核对适用性", "state": "active"},
-        ],
-        "message": f"正在核对 {len(pages)} 篇原文…",
-    }
-    db.commit()
-
+async def _judge_pages(
+    db: Session,
+    event: Event,
+    pages: list[dict],
+    *,
+    queries: list[str],
+    mode: str | None = None,
+) -> dict:
+    """对已抓到的原文逐篇判断适用性，产出与 /api/events/{id}/verify 一致的结果。"""
     current = _current(db, event)
     findings: list[dict] = []
     sources_out: list[dict] = []
@@ -412,7 +379,7 @@ async def verify_event(db: Session, event: Event, job: Job) -> dict:
         "not_found": "未找到明确适用的官方依据。建议确认活动主办方或咨询负责部门。",
     }[overall]
 
-    return {
+    result = {
         "status": overall,
         "message": message,
         "query": queries,
@@ -420,3 +387,81 @@ async def verify_event(db: Session, event: Event, job: Job) -> dict:
         "findings": findings,
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }
+    if mode:
+        result["mode"] = mode
+    return result
+
+
+async def verify_event(db: Session, event: Event, job: Job) -> dict:
+    queries = [
+        f"{settings.school_name} {settings.college_name} {event.title}",
+        f"{settings.school_name} {event.title} 通知",
+        f"{event.title} site:{settings.school_domain}",
+    ]
+    seen: set[str] = set()
+    hits: list[dict] = []
+    for q in queries:
+        for hit in await search_web(q, limit=5):
+            if hit["url"] in seen:
+                continue
+            seen.add(hit["url"])
+            hits.append(hit)
+        if len(hits) >= 5:
+            break
+
+    job.stage = {
+        "stage": "fetch",
+        "steps": [
+            {"key": "search", "label": "检索官方来源", "state": "done"},
+            {"key": "fetch", "label": "读取原文", "state": "active"},
+            {"key": "judge", "label": "核对适用性", "state": "todo"},
+        ],
+        "message": f"找到 {len(hits)} 条候选，正在读取原文…",
+    }
+    db.commit()
+
+    pages = await asyncio.gather(*[fetch_page(h["url"]) for h in hits[:4]])
+    pages = [p for p in pages if p and len(p["text"]) > 100]
+
+    job.stage = {
+        "stage": "judge",
+        "steps": [
+            {"key": "search", "label": "检索官方来源", "state": "done"},
+            {"key": "fetch", "label": "读取原文", "state": "done"},
+            {"key": "judge", "label": "核对适用性", "state": "active"},
+        ],
+        "message": f"正在核对 {len(pages)} 篇原文…",
+    }
+    db.commit()
+
+    return await _judge_pages(db, event, pages, queries=queries)
+
+
+async def verify_url(db: Session, event: Event, job: Job, url: str) -> dict:
+    """按用户给的官方链接核实：不检索，只抓这一页；抓不到就如实说未找到。"""
+    job.stage = {
+        "stage": "fetch",
+        "steps": [
+            {"key": "search", "label": "打开指定链接", "state": "done"},
+            {"key": "fetch", "label": "读取原文", "state": "active"},
+            {"key": "judge", "label": "核对适用性", "state": "todo"},
+        ],
+        "message": "正在打开你提供的链接…",
+    }
+    db.commit()
+
+    page = await fetch_page(url)
+    pages = [page] if page and len(page["text"]) >= 80 else []
+
+    job.stage = {
+        "stage": "judge",
+        "steps": [
+            {"key": "search", "label": "打开指定链接", "state": "done"},
+            {"key": "fetch", "label": "读取原文", "state": "done"},
+            {"key": "judge", "label": "核对适用性", "state": "active"},
+        ],
+        "message": "已读取原文，正在核对适用性…" if pages else "未能读取该链接正文，正在给出结论…",
+    }
+    db.commit()
+
+    return await _judge_pages(db, event, pages, queries=[url], mode="url")

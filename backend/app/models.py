@@ -359,7 +359,7 @@ class Job(Base):
     __tablename__ = "job"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
-    type: Mapped[str] = mapped_column(String(16))  # crawl|parse|verify|mail_sync|remind
+    type: Mapped[str] = mapped_column(String(16))  # crawl|parse|verify|verify_url|mail_sync|remind
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     run_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utcnow)
     state: Mapped[str] = mapped_column(String(16), default="queued")

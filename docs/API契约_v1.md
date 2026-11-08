@@ -57,7 +57,7 @@ type EventDetail = EventBrief & {
 |---|---|---|
 | GET | `/api/health` | `{ok, db, model:{ok,model,error?}, school, college}` |
 | GET | `/api/capabilities` | `{items:[{key,name,level:"live"\|"entry",note}]}` |
-| GET | `/api/today` | `{events: EventBrief[], tasks: TaskRow[], candidates: number}`，`TaskRow={id,event_id,event_title,action,due_at,due_display,state}` |
+| GET | `/api/today` | `{events: EventBrief[], tasks: TaskRow[], candidates: number}`，`TaskRow={id,event_id,event_title,action,due_at,due_display,state}`；`events` 与 `tasks` 只含 `state=confirmed` 的事件，候选事件不计入行动台 |
 | GET | `/api/inbox` | `{candidates: Candidate[], merges: Merge[], changes: [], counts:{candidates,merges,changes}}` |
 | GET | `/api/events` | `{items: EventBrief[]}` |
 | GET | `/api/events/{id}` | `EventDetail` |
@@ -89,6 +89,7 @@ type Merge = {
 | POST | `/api/events/{id}/confirm` | — | → `EventDetail` |
 | PATCH | `/api/events/{id}` | `{field, value}` | 用户手改字段 → `EventDetail` |
 | POST | `/api/events/{id}/verify` | — | → `{job_id}`，完成后 `job.result` 见下 |
+| POST | `/api/verify/url` | `{event_id, url}` | 可选兜底：不检索，只抓取该官方链接并核对；同步返回 `VerifyResult`（额外带 `mode:"url"`），同时记一条 `type="verify_url"` 的 job 留痕 |
 | POST | `/api/findings/apply` | `{event_id, field, value, quote, source_id, impact}` | → `EventDetail` |
 | POST | `/api/claims/{id}/decide` | `{action:"accept"\|"reject"}` | 字段来源裁决 |
 | POST | `/api/merge/{id}` | `{action:"accept"\|"reject"}` | → `{ok,state,event_id?}` |
@@ -111,8 +112,12 @@ type VerifyResult = {
     impact: "high" | "normal"; note: string;
   }[];
   checked_at: string;
+  mode?: "url";        // 仅 /api/verify/url 返回；检索路径无此字段
 };
 ```
+
+`/api/verify/url` 是可选兜底路径：搜索引擎尚未收录时（或已知官方页面地址时），用户可贴入官方链接直接核对。
+抓不到正文、页面与事件不适用、或 quote 校验不通过时，同样返回 `status: "not_found"`，不伪造结论。
 
 ## 前端路由与要求
 
