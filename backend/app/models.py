@@ -363,6 +363,10 @@ class Job(Base):
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     run_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utcnow)
     state: Mapped[str] = mapped_column(String(16), default="queued")
+    # 给前端轮询用的阶段信息：{"stage": "...", "steps": [{key,label,state}], "message": "..."}
+    stage: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # 任务产出（核实结果等），避免再建一张表
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     last_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utcnow)
