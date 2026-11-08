@@ -90,9 +90,9 @@
   .rule .name { font-size: 25px; font-weight: 600; width: 240px; flex: none; }
   .rule .desc { font-size: 18px; color: var(--muted); line-height: 1.6; }
 
-  /* ===== P5 闭环：两行三列 ===== */
-  .p5 { padding: 42px 68px 56px; }
-  .p5 h1 { font-size: 34px; margin-top: 8px; }
+  /* ===== 闭环：两行三列 ===== */
+  .flowpage { padding: 42px 68px 56px; }
+  .flowpage h1 { font-size: 34px; margin-top: 8px; }
   .flow2 { margin-top: 14px; }
   .flow2 .line { display: grid; grid-template-columns: 360px 32px 360px 32px 360px; }
   .flow2 .cell { width: 360px; }
@@ -113,7 +113,37 @@
   .flow2 .fold { height: 30px; }
   .flow2 .fold svg { display: block; }
   .p5note { font-size: 17px; color: var(--ink); margin-top: 14px; line-height: 1.5; }
-  .p5 .foot { left: 68px; right: 68px; }
+  .flowpage .foot { left: 68px; right: 68px; }
+
+  /* ===== 多来源 ===== */
+  .srcpage { padding-top: 50px; }
+  .sources { display: flex; gap: 44px; margin-top: 10px; }
+  .sources .left { width: 500px; flex: none; }
+  .sources .sblock { border-top: 1px solid var(--line); padding: 15px 0 13px; }
+  .sources .sblock:first-child { border-top: none; padding-top: 2px; }
+  .sources .sblock h3 { font-size: 20px; font-weight: 600; }
+  .sources .sdata { font-size: 15px; color: var(--green); font-weight: 600; margin-top: 7px; line-height: 1.45; }
+  .sources .sblock p { font-size: 14px; color: var(--muted); margin-top: 5px; line-height: 1.55; }
+  .sources .right { width: 600px; flex: none; }
+  .sources .rblock + .rblock { margin-top: 2px; }
+  .sources .scap { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; margin-bottom: 2px; }
+  .sources .shot { border: 1px solid var(--line); background: #fff; overflow: hidden; }
+  .sources .shot img { width: 100%; display: block; }
+
+  /* ===== 能力矩阵：四档 ===== */
+  .cap-feature { margin-top: 32px; }
+  .cap-title { display: flex; align-items: center; gap: 9px; font-size: 18px; font-weight: 600; padding-bottom: 9px; border-bottom: 2px solid var(--ink); }
+  .cap-title .cdot { width: 9px; height: 9px; display: inline-block; }
+  .cap-title .ccount { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 32px; list-style: none; }
+  .cap-grid li { padding: 15px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+  .cap-grid li b { display: block; font-weight: 600; }
+  .cap-grid li span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cap-rest { display: flex; gap: 32px; margin-top: 32px; }
+  .cap-box { flex: 1; border-top: 1px solid var(--line); padding-top: 11px; }
+  .cap-box .chead { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+  .cap-box .cname { font-size: 17px; font-weight: 600; margin-top: 5px; line-height: 1.35; }
+  .cap-box p { font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
 
   /* ===== P8 核实对照 ===== */
   .verify-row { margin-top: 22px; }
@@ -140,7 +170,7 @@
 <body>
 
 <!-- ============ 1 封面 ============ -->
-<section class="slide">
+<section class="slide" id="p1">
   <div class="brand">到点</div>
   <div style="margin-top:150px;">
     <h1 style="font-size:56px;">面向大学生的多来源校园信息行动台</h1>
@@ -153,39 +183,25 @@
 </section>
 
 <!-- ============ 2 问题 ============ -->
-<section class="slide">
+<section class="slide" id="p2">
   <div class="kicker">01 · 问题</div>
-  <h1>信息不是没有，是散着</h1>
-  <div class="cols3">
+  <h1>信息散着，做法也没留下依据</h1>
+  <div class="cols3" style="margin-top:30px;">
     <div class="col">
       <h3>官网通知</h3>
       <p class="what">发在网页上，刷过去就找不到了</p>
-      <p class="miss">搬运会抄错</p>
     </div>
     <div class="col">
       <h3>群聊截图</h3>
       <p class="what">存进相册，沉在几百张图下面</p>
-      <p class="miss">翻不到、对不上</p>
     </div>
     <div class="col">
       <h3>报名与截止</h3>
       <p class="what">各人记各的日历，口径不一致</p>
-      <p class="miss">变更没人追</p>
     </div>
   </div>
-  <p style="font-size:22px; margin-top:96px;">每一份都要靠人搬：<span class="clash">搬运会错、口径会打架、变更没人追。</span></p>
-  <div class="foot">
-    <span>到点 · 评审演示</span>
-    <span>场景示意<span class="tag" style="margin-left:8px;">示意</span></span>
-    <span>02 / 10</span>
-  </div>
-</section>
-
-<!-- ============ 3 现有做法 ============ -->
-<section class="slide">
-  <div class="kicker">02 · 现有做法</div>
-  <h1>记下了，但没有依据</h1>
-  <div class="cols3">
+  <p style="font-size:13px; color:var(--muted); letter-spacing:0.12em; margin-top:36px;">已经做过的三个动作</p>
+  <div class="cols3" style="margin-top:16px;">
     <div class="col">
       <h3>截图存相册</h3>
       <p class="what">图在，原文的上下文不在</p>
@@ -202,16 +218,17 @@
       <p class="miss">变更会漏</p>
     </div>
   </div>
-  <p style="font-size:22px; margin-top:96px;">三个动作都做了，真到用时还是一句：<span class="clash">「到底几点？在哪？要交什么？」</span></p>
+  <p style="font-size:22px; margin-top:34px;">三个动作都做了，真到用时还是一句：<span class="clash">「到底几点？在哪？要交什么？」</span></p>
   <div class="foot">
     <span>到点 · 评审演示</span>
-    <span>03 / 10</span>
+    <span>场景示意<span class="tag" style="margin-left:8px;">示意</span></span>
+    <span>02 / 10</span>
   </div>
 </section>
 
-<!-- ============ 4 主张 ============ -->
-<section class="slide">
-  <div class="kicker">03 · 主张</div>
+<!-- ============ 3 主张 ============ -->
+<section class="slide" id="p3">
+  <div class="kicker">02 · 主张</div>
   <h1>三条原则，一页讲完</h1>
   <div style="margin-top:36px;">
     <div class="rule">
@@ -232,13 +249,13 @@
   </div>
   <div class="foot">
     <span>到点 · 评审演示</span>
-    <span>04 / 10</span>
+    <span>03 / 10</span>
   </div>
 </section>
 
-<!-- ============ 5 闭环 ============ -->
-<section class="slide p5" id="p5">
-  <div class="kicker">04 · 闭环</div>
+<!-- ============ 4 闭环 ============ -->
+<section class="slide flowpage" id="p4">
+  <div class="kicker">03 · 闭环</div>
   <h1>从一张截图，到一份行动清单</h1>
   <div class="flow2">
     <div class="line">
@@ -283,13 +300,13 @@
   <p class="p5note">每一步人都看得见、说了算；识别与核实是真实模型与检索调用，结论以原文出处为准。活动内容为演示数据。</p>
   <div class="foot">
     <span>到点 · 评审演示</span>
-    <span>05 / 10</span>
+    <span>04 / 10</span>
   </div>
 </section>
 
-<!-- ============ 6 机制一 ============ -->
-<section class="slide">
-  <div class="kicker">05 · 机制一</div>
+<!-- ============ 5 机制一 ============ -->
+<section class="slide" id="p5">
+  <div class="kicker">04 · 机制一</div>
   <h1>每个字段，都连回原文</h1>
   <div style="display:flex; gap:52px; margin-top:34px;">
     <div style="width:380px; flex:none; padding-top:12px;">
@@ -315,13 +332,13 @@
   </div>
   <div class="foot">
     <span>到点 · 评审演示</span>
-    <span>06 / 10</span>
+    <span>05 / 10</span>
   </div>
 </section>
 
-<!-- ============ 7 机制二 ============ -->
-<section class="slide">
-  <div class="kicker">06 · 机制二</div>
+<!-- ============ 6 机制二 ============ -->
+<section class="slide" id="p6">
+  <div class="kicker">05 · 机制二</div>
   <h1 style="font-size:40px;">冲突并排，裁决由人，历史只追加</h1>
   <div class="crop" style="height:265px; margin-top:20px;">
     <img src="assets/event-full.png" style="width:113%; margin-top:-295px;" alt="活动时间冲突并排">
@@ -344,13 +361,13 @@
   </div>
   <div class="foot">
     <span>到点 · 评审演示</span>
-    <span>07 / 10</span>
+    <span>06 / 10</span>
   </div>
 </section>
 
-<!-- ============ 8 核实 ============ -->
-<section class="slide">
-  <div class="kicker">07 · 核实</div>
+<!-- ============ 7 核实 ============ -->
+<section class="slide" id="p7">
+  <div class="kicker">06 · 核实</div>
   <h1 style="font-size:34px; margin-top:10px;">有依据带原文，没依据直说</h1>
   <div class="verify-row" style="margin-top:10px;">
     <div class="vlabel" style="margin-bottom:6px;"><span class="vdot" style="background:var(--clash);"></span>搜索没找到 → 明说未确认</div>
@@ -368,41 +385,91 @@
   </div>
   <div class="foot">
     <span>到点 · 评审演示</span>
+    <span>07 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 8 多来源 ============ -->
+<section class="slide srcpage" id="p8">
+  <div class="kicker">07 · 多来源</div>
+  <h1 style="font-size:38px; margin-top:8px;">多来源，不是多接几个接口</h1>
+  <p style="font-size:18px; color:var(--muted); margin-top:8px;">多来源不是堆接口，而是同一事件的不同证据；每条都带出处，冲突时并排、不覆盖。</p>
+  <div class="sources">
+    <div class="left">
+      <div class="sblock">
+        <h3>官网同步 · UNNC</h3>
+        <div class="sdata">就业 0 篇 · 新闻 12 篇 · 活动 5 篇</div>
+        <p>定时抓取公开列表页，新内容先进收件箱待确认；活动栏目最近一次有 1 条抽取失败，失败原因如实显示。</p>
+      </div>
+      <div class="sblock">
+        <h3>邮件导入 · .eml / .mbox</h3>
+        <div class="sdata">已导入 1 封 .eml</div>
+        <p>拖入文件即解析，附件 PDF 与图片一并提取；IMAP 只读拉取已实现，真实邮箱账号尚待验证。</p>
+      </div>
+      <div class="sblock">
+        <h3>自定义站点 · 声明式 + Agent</h3>
+        <div class="sdata">本次调研得到 6 条候选</div>
+        <p>登记域名后定时同步，核实只在该域名内检索；Agent 实访列表页，给出选择器建议，写入前由你确认。</p>
+      </div>
+    </div>
+    <div class="right">
+      <div class="rblock">
+        <div class="scap">官网同步 · 设置页（真实界面）</div>
+        <div class="shot"><img src="assets/src/sync.png" alt="UNNC 三个栏目同步状态与篇数"></div>
+      </div>
+      <div class="rblock">
+        <div class="scap">邮件导入 · .eml 已处理（真实界面）</div>
+        <div class="shot"><img src="assets/src/mail.png" alt="邮件导入与已处理邮件"></div>
+      </div>
+      <div class="rblock">
+        <div class="scap">站点调研 Agent · 6 条候选（真实界面）</div>
+        <div class="shot"><img src="assets/src/agent.png" alt="Agent 调研结果候选条目"></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
     <span>08 / 10</span>
   </div>
 </section>
 
 <!-- ============ 9 能力边界 ============ -->
-<section class="slide">
+<section class="slide" id="p9">
   <div class="kicker">08 · 能力边界</div>
   <h1>现在做到哪，就说到哪</h1>
-  <div class="matrix">
-    <div class="mcol">
-      <div class="mhead"><span class="mdot" style="background:var(--green);"></span>已实现</div>
-      <ul>
-        <li>截图 / 文字识别与收录<div class="msub">真实调用模型识别</div></li>
-        <li>字段级来源<div class="msub">每个字段带原文与出处</div></li>
-        <li>跨来源关联与冲突提示<div class="msub">提出合并建议，由你确认</div></li>
-        <li>联网核实<div class="msub">真实检索并抓取原文</div></li>
-        <li>日历导出<div class="msub">.ics</div></li>
-      </ul>
+  <div class="cap-feature">
+    <div class="cap-title"><span class="cdot" style="background:var(--green);"></span>真实可用<span class="ccount">9 项</span></div>
+    <ul class="cap-grid">
+      <li><b>截图识别与收录</b><span>上传或粘贴，真实调用模型</span></li>
+      <li><b>事件整理与字段来源</b><span>每个字段带原文与出处</span></li>
+      <li><b>跨来源关联 / 冲突</b><span>提出合并建议，由你确认</span></li>
+      <li><b>联网核实</b><span>真实检索并抓取原文</span></li>
+      <li><b>行动清单</b><span>近 7 天待办聚合</span></li>
+      <li><b>日历导出</b><span>导出 .ics</span></li>
+      <li><b>官网同步</b><span>UNNC 三栏目实测</span></li>
+      <li><b>站内提醒</b><span>截止前 2 小时生成</span></li>
+      <li><b>站点调研 Agent</b><span>实访列表页，给出规则建议</span></li>
+    </ul>
+  </div>
+  <div class="cap-rest">
+    <div class="cap-box">
+      <div class="chead">已实现 · 待验证</div>
+      <div class="cname">邮箱自动连接（IMAP）</div>
+      <p>只读拉取已实现，尚未用真实邮箱账号验证。</p>
     </div>
-    <div class="mcol">
-      <div class="mhead"><span class="mdot" style="background:var(--clash);"></span>入口 · 演示暂未接入</div>
-      <ul>
-        <li>官网定时抓取<div class="msub">仅保留入口</div></li>
-        <li>邮箱自动连接与检索<div class="msub">仅保留入口</div></li>
-        <li>多渠道推送与后台提醒<div class="msub">仅保留入口</div></li>
-      </ul>
+    <div class="cap-box">
+      <div class="chead">已实现 · 未验证</div>
+      <div class="cname">第三方 API 源</div>
+      <p>JSON 拉取与抽取已实现，缺真实第三方 Key 验证。</p>
     </div>
-    <div class="mcol">
-      <div class="mhead"><span class="mdot" style="background:var(--muted);"></span>规划</div>
-      <ul>
-        <li>自定义网站查询<div class="msub">指定信息源，按需核实</div></li>
-      </ul>
+    <div class="cap-box">
+      <div class="chead">规划</div>
+      <div class="cname">多渠道推送 · 系统级分享扩展</div>
+      <p>尚未接入，仅作为规划保留。</p>
     </div>
   </div>
-  <p class="note" style="margin-top:24px;">口径与产品「设置」页的能力矩阵一致：已接入的标「已实现」，没接入的明确写「演示暂未接入」。</p>
+  <p class="note" style="margin-top:20px;">与产品「设置」页的能力矩阵同口径：实测通过的归入「真实可用」，未用真实账号或 Key 验证的单列，规划项不混入已实现。</p>
+  <p style="font-size:18px; margin-top:24px;"><span class="green" style="font-weight:600;">边界即承诺：</span>未接入的能力只显示入口，不伪造连接状态或同步时间。</p>
   <div class="foot">
     <span>到点 · 评审演示</span>
     <span>09 / 10</span>
@@ -410,7 +477,7 @@
 </section>
 
 <!-- ============ 10 收尾 ============ -->
-<section class="slide">
+<section class="slide" id="p10">
   <div style="display:flex; gap:56px; margin-top:60px;">
     <div style="width:520px; flex:none;">
       <div class="kicker">09 · 收尾</div>
@@ -433,11 +500,12 @@
 </section>
 
 <script>
-  // 供无头浏览器单页截图使用：slides.html#p5
-  if (location.hash === '#p5') {
+  // 供无头浏览器单页截图使用：slides.html#p1 … #p10
+  var solo = /^#p([1-9]|10)$/.exec(location.hash);
+  if (solo) {
     document.body.classList.add('solo');
     document.querySelectorAll('.slide').forEach(function (s) {
-      if (s.id !== 'p5') s.style.display = 'none';
+      if (s.id !== 'p' + solo[1]) s.style.display = 'none';
     });
   }
 </script>
