@@ -1,0 +1,243 @@
+// 到点 · 数据模型 v0.1（草案）
+//
+// 约定：
+// 1. 枚举与 JSON 一律用 String 存储（SQLite 不支持原生 enum；Json 类型跨库不稳定），
+//    在 lib/llm/schema.ts 与 lib/claims.ts 用 zod 收口。上 Postgres 时再换原生类型。
+// 2. Claim 是唯一事实来源。Event/Task/Rule 上的字段只是“当前视图”，
+//    只读不写——写入必须走 lib/claims.ts 的 appendClaim()。
+// 3. 时间统一存 UTC；展示时按 Profile.timezone 转换。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// 单用户原型。多用户时加 User 表并挂 userId。
+model Profile {
+  id        String   @id @default("me")
+  school    String?
+  college   String?
+  grade     String?
+  /// JSON: string[] 关注的身份标签，如 ["本科生","2024级"]
+  audience  String?
+  timezone  String   @default("Asia/Shanghai")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// 官网栏目 / 邮箱的抓取配置
+model WatchTarget {
+  id         String    @id @default(cuid())
+  kind       String // web | mail
+  name       String
+  url        String?
+  /// 列表页文章链接选择器；为空时走兜底启发式
+  selector   String?
+  cron       String?
+  enabled    Boolean   @default(true)
+  lastRunAt  DateTime?
+  lastError  String?
+  createdAt  DateTime  @default(now())
+  sources    Source[]
+}
+
+/// 一条来源记录：网页 / 邮件 / 截图 / 文本 / 链接
+model Source {
+  id            String   @id @default(cuid())
+  kind          String // web | mail | screenshot | text | link
+  title         String?
+  org           String?
+  url           String?
+  messageId     String?
+  /// 归一化后的正文，Claim.quote 的校验基准
+  text          String
+  /// 原文快照（HTML/EML）路径，storage/ 下，不入 git
+  rawPath       String?
+  rawHash       String?
+  /// 展示用原图路径
+  imagePath     String?
+  publishedAt   DateTime?
+  fetchedAt     DateTime @default(now())
+  status        String   @default("ready") // ready | parsed | failed
+  /// JSON: 来源附加信息（发件人、栏目、OCR 置信度等）
+  meta          String?
+  watchTargetId String?
+  watchTarget   WatchTarget? @relation(fields: [watchTargetId], references: [id])
+  createdAt     DateTime @default(now())
+
+  claims Claim[]
+  runs   PipelineRun[]
+
+  @@unique([kind, messageId])
+  @@index([org, publishedAt])
+}
+
+/// 每次解析的审计记录：阶段、耗时、模型原始输出
+model PipelineRun {
+  id        String   @id @default(cuid())
+  sourceId  String?
+  source    Source?  @relation(fields: [sourceId], references: [id])
+  stage     String // ingest | text | extract | validate | link | verify
+  status    String // running | ok | failed | needs_review
+  provider  String?
+  model     String?
+  latencyMs Int?
+  error     String?
+  /// 模型原始 JSON，回放与排查用
+  output    String?
+  createdAt DateTime @default(now())
+
+  @@index([sourceId, stage])
+}
+
+model Event {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  org            String?
+  audience       String?
+  location       String?
+  startAt        DateTime?
+  endAt          DateTime?
+  /// date | datetime | range
+  startPrecision String?
+  endPrecision   String?
+  /// candidate | confirmed | ignored | merged
+  state          String    @default("candidate")
+  mergedIntoId   String?
+  mergedInto     Event?    @relation("EventMerge", fields: [mergedIntoId], references: [id])
+  mergedFrom     Event[]   @relation("EventMerge")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tasks Task[]
+  rules Rule[]
+
+  @@index([startAt, state])
+}
+
+model Task {
+  id            String    @id @default(cuid())
+  eventId       String?
+  event         Event?    @relation(fields: [eventId], references: [id])
+  action        String
+  dueAt         DateTime?
+  duePrecision  String?
+  /// JSON: string[]
+  materials     String?
+  submitChannel String?
+  prerequisites String?
+  state         String    @default("open") // open | done | dismissed
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  reminders Reminder[]
+
+  @@index([dueAt, state])
+}
+
+model Rule {
+  id        String    @id @default(cuid())
+  eventId   String?
+  event     Event?    @relation(fields: [eventId], references: [id])
+  text      String
+  scope     String?
+  validFrom DateTime?
+  validTo   DateTime?
+  impact    String    @default("normal") // normal | high
+  state     String    @default("unconfirmed") // unconfirmed | supported | conflict | user_confirmed
+  createdAt DateTime  @default(now())
+
+  @@index([impact, state])
+}
+
+/// 字段级断言：某实体的某字段的某候选值，出自哪条来源的哪句原文
+model Claim {
+  id         String   @id @default(cuid())
+  entityType String // event | task | rule
+  entityId   String
+  field      String
+  /// JSON 编码的值；null 表示“该字段被明确清空”
+  value      String?
+  sourceId   String
+  source     Source   @relation(fields: [sourceId], references: [id])
+  /// 原文连续片段（归一化文本中的子串）
+  quote      String?
+  quoteStart Int?
+  quoteEnd   Int?
+  /// unverified | supported | conflict | insufficient | needs_anchor | user_confirmed | rejected | stale
+  status     String   @default("unverified")
+  /// model | user | rule | import
+  origin     String   @default("model")
+  confidence Float?
+  decidedAt  DateTime?
+  decidedBy  String?
+  createdAt  DateTime @default(now())
+
+  changes Change[]
+
+  @@index([entityType, entityId, field, status])
+  @@index([sourceId])
+}
+
+model Change {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  field      String
+  oldValue   String?
+  newValue   String?
+  claimId    String?
+  claim      Claim?   @relation(fields: [claimId], references: [id])
+  reason     String?
+  /// pending | acknowledged | rejected
+  state      String   @default("pending")
+  detectedAt DateTime @default(now())
+
+  @@index([state, detectedAt])
+}
+
+model MergeCandidate {
+  id        String   @id @default(cuid())
+  eventAId  String
+  eventBId  String
+  score     Float
+  /// JSON: string[] 判定理由，UI 直接展示，保证可解释
+  reasons   String
+  /// pending | accepted | rejected
+  state     String   @default("pending")
+  createdAt DateTime @default(now())
+
+  @@unique([eventAId, eventBId])
+}
+
+model Job {
+  id        String    @id @default(cuid())
+  type      String // crawl | parse | verify | mail_sync | remind
+  payload   String
+  runAt     DateTime  @default(now())
+  /// queued | running | done | failed
+  state     String    @default("queued")
+  attempts  Int       @default(0)
+  lastError String?
+  createdAt DateTime  @default(now())
+
+  @@index([state, runAt])
+}
+
+model Reminder {
+  id      String    @id @default(cuid())
+  taskId  String?
+  task    Task?     @relation(fields: [taskId], references: [id])
+  eventId String?
+  fireAt  DateTime
+  /// ics | inapp
+  channel String    @default("inapp")
+  /// scheduled | sent | cancelled
+  state   String    @default("scheduled")
+  sentAt  DateTime?
+}
