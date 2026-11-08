@@ -234,7 +234,8 @@ def _domain(url: str) -> str:
 
 def _is_official(url: str) -> bool:
     d = _domain(url)
-    return d.endswith(settings.school_domain) or d.endswith("edu.cn")
+    school = settings.school_domain.lower().strip()
+    return bool(school) and (d == school or d.endswith("." + school))
 
 
 def get_or_create_source(db: Session, page: dict) -> Source:
@@ -343,11 +344,15 @@ async def _judge_pages(
                 label = f"{label}（高影响）"
             display_new = fmt_value(f.field, value)
             if state == "supported" and display_new:
-                for cur_label, cur_val in current.items():
-                    if cur_label.endswith(FIELD_LABELS.get(f.field, f.field)) and cur_val != display_new:
-                        state = "conflict"
-                        note = f"与当前记录不一致：{cur_val}"
-                        break
+                cur_val = current.get(f.field)
+                if cur_val is None:
+                    # 任务字段在 current 里的键带事项前缀，例如「完成注册.due_at」
+                    cur_val = next(
+                        (v for k, v in current.items() if k.endswith("." + f.field)), None
+                    )
+                if cur_val is not None and cur_val != display_new:
+                    state = "conflict"
+                    note = f"与当前记录不一致：{cur_val}"
             findings.append(
                 {
                     "id": f"{src.id}-{f.field}-{len(findings)}",

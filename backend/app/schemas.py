@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ---------------------------------------------------------------- 模型输出契约
@@ -25,6 +25,12 @@ class ExtractedEvent(BaseModel):
     org: FieldValue = Field(default_factory=FieldValue)
     audience: FieldValue = Field(default_factory=FieldValue)
 
+    @field_validator("title", "start_at", "end_at", "location", "org", "audience", mode="before")
+    @classmethod
+    def _none_as_empty(cls, value: Any) -> Any:
+        """模型偶尔对未填字段直接返回 null；语义等同空字段，不让整个任务失败。"""
+        return {} if value is None else value
+
 
 class ExtractedTask(BaseModel):
     action: FieldValue = Field(default_factory=FieldValue)
@@ -32,11 +38,31 @@ class ExtractedTask(BaseModel):
     materials: list[FieldValue] = Field(default_factory=list)
     submit_channel: FieldValue = Field(default_factory=FieldValue)
 
+    @field_validator("action", "due_at", "submit_channel", mode="before")
+    @classmethod
+    def _none_as_empty(cls, value: Any) -> Any:
+        return {} if value is None else value
+
+    @field_validator("materials", mode="before")
+    @classmethod
+    def _none_as_empty_list(cls, value: Any) -> Any:
+        return [] if value is None else value
+
 
 class ExtractedRule(BaseModel):
     text: str = ""
     impact: Literal["high", "normal"] = "normal"
     quote: str = ""
+
+    @field_validator("text", "quote", mode="before")
+    @classmethod
+    def _none_as_blank(cls, value: Any) -> Any:
+        return "" if value is None else value
+
+    @field_validator("impact", mode="before")
+    @classmethod
+    def _none_as_normal(cls, value: Any) -> Any:
+        return "normal" if value is None else value
 
 
 class ExtractionResult(BaseModel):

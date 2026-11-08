@@ -149,6 +149,10 @@ def resolve_field(db: Session, entity_type: str, entity_id: str, field: str) -> 
         winner = pool[-1]
         distinct = {_norm(c.value) for c in pool}
         status = "user_confirmed" if confirmed else ("conflict" if len(distinct) > 1 else "supported")
+        if field == "title" and status == "conflict":
+            # 冲突仍并排展示、由用户裁决；展示默认取信息量更大的完整标题，
+            # 避免「讲座」这类群聊简称盖过正式通知标题。
+            winner = max(pool, key=lambda c: len(str(c.value or "")))
         return {"value": winner.value, "status": status, "claim": winner}
     if pending:
         return {"value": None, "status": pending[-1].status, "claim": pending[-1]}

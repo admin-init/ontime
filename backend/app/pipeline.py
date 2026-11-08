@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import re
 import unicodedata
 from datetime import datetime
 from difflib import SequenceMatcher
 from typing import Any
 
+from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -26,6 +28,24 @@ def normalize(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def prepare_image(data: bytes, mime: str) -> tuple[bytes, str]:
+    """小截图先放大 2 倍再送识别。
+
+    手机/网页截图里的链接字号很小，视觉模型容易漏掉连续重复字母
+    （例如 unncevents 变成 unnevents）。放大后逐字符识别明显更稳。
+    """
+    try:
+        img = Image.open(io.BytesIO(data)).convert("RGB")
+    except Exception:  # noqa: BLE001
+        return data, mime
+    if max(img.size) >= 1600:
+        return data, mime
+    img = img.resize((img.width * 2, img.height * 2), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    return buf.getvalue(), "image/png"
 
 
 class QuoteIndex:
@@ -82,7 +102,7 @@ TRANSCRIBE_PROMPT = """你是校园截图文字转录器。把图片中所有可
 
 规则：
 1. 只转录，不总结、不翻译、不补全、不猜测。
-2. 数字、日期、时间、地点、链接、文件名必须原样保留。
+2. 数字、日期、时间、地点、链接、文件名必须原样保留。链接和英文单词要逐字符核对，连续相同字母不能合并、不能漏写（例如 events 不能写成 evnts）。
 3. 聊天截图按消息顺序输出，每条消息一行，格式：[发送人] 内容；发送人看不清写 [未知]。
 4. 图中若出现日期或时间标注（消息时间、通知落款、发布日），原样保留在对应位置。
 5. 完全无法辨认的字用 □ 代替。
@@ -91,15 +111,17 @@ TRANSCRIBE_PROMPT = """你是校园截图文字转录器。把图片中所有可
 EXTRACT_SYSTEM = """你是校园通知结构化抽取器。只输出 JSON，不输出解释。
 
 硬性规则：
-1. 只抽取原文中明确写出的信息。没有就填 null，禁止根据常识、往年惯例或相似通知推测。
-2. 每个非空字段必须给出 quote：从原文逐字复制的连续片段（不改写、不省略、不加省略号）。quote 必须能在原文中原样找到。
-3. 活动时间 start_at 与报名/材料截止 due_at 必须分开：活动何时举行 → events[].start_at；何时之前要报名或交材料 → tasks[].due_at。绝不能把截止时间填进 start_at。
-4. 相对时间（明天、下周三、本周五）只有在原文同时给出参照日期时才能换算；否则 value 填 null，并在 questions 里说明缺少什么参照。
-5. 时间用带时区的 ISO 8601，例如 2026-11-12T14:00:00+08:00；只知道日期用 2026-11-12，precision 填 "date"。原文没写年份时，除非参考基准日期已给出，否则不要自行补年份。
-6. doc_type：notice=正式通知/公告；news=新闻或宣传报道；chat=聊天记录截图；mail=邮件；other=其他。
-7. 新闻、宣传稿、纯介绍且无需用户行动的，actionable 填 false。
-8. rules 只抽明确写出的规则条款，涉及扣分/取消资格/处分/费用/逾期后果时 impact 填 "high"。
-9. 不要合并不同场次、不同届次、不同学院、不同年份的事项。
+1. 只要正文在讨论某个具体活动、项目、讲座、评选、比赛、课程安排或招生事项，就必须在 events 里输出对应的一条：title 必填，且是原文中能逐字找到的称呼（如「讲座」「公开讲座：…」）；start_at、location、org、audience 原文没写就填 null。不要因为缺少时间、地点或截止时间就省略 event。聊天记录里即使只是转述或讨论变更（例如改地点、补材料），也要为该活动输出 event。
+2. 只有正文是纯闲聊、纯提问、寒暄，且没有指向任何具体活动对象时，events 才允许为空。
+3. 只抽取原文中明确写出的信息。没有就填 null，禁止根据常识、往年惯例或相似通知推测。
+4. 每个非空字段必须给出 quote：从原文逐字复制的连续片段（不改写、不省略、不加省略号）。quote 必须能在原文中原样找到。
+5. 活动时间 start_at 与报名/材料截止 due_at 必须分开：活动何时举行 → events[].start_at；何时之前要报名或交材料 → tasks[].due_at。绝不能把截止时间填进 start_at。
+6. 相对时间（明天、下周三、本周五、15号、12号前）必须结合原文给出的参照日期换算：聊天记录的「界面日期」「消息时间戳」、通知的落款日期、参考基准日期都算参照日期。原文给了参照日期就必须换算成具体日期；确实没有任何参照时才填 null，并在 questions 里说明缺少什么参照。聊天记录里复述的活动时间（如「讲座还是15号上午9:30」）同样要填进 start_at，不要因为来自聊天就留空。
+7. 时间用带时区的 ISO 8601，例如 2026-11-12T14:00:00+08:00；只知道日期用 2026-11-12，precision 填 "date"。原文没写年份时，参考基准日期或正文日期已给出年份就用该年份，否则不要自行补年份。
+8. doc_type：notice=正式通知/公告；news=新闻或宣传报道；chat=聊天记录截图；mail=邮件；other=其他。
+9. 新闻、宣传稿、纯介绍且无需用户行动的，actionable 填 false。
+10. rules 只抽明确写出的规则条款，涉及扣分/取消资格/处分/费用/逾期后果时 impact 填 "high"。
+11. 不要合并不同场次、不同届次、不同学院、不同年份的事项；同一场活动的不同来源信息应指向同一个事件。
 
 输出 JSON 结构：
 {
@@ -128,6 +150,11 @@ EXTRACT_SYSTEM = """你是校园通知结构化抽取器。只输出 JSON，不�
 JUDGE_SYSTEM = """你在判断两份校园信息是否指向同一个事件。只输出 JSON。
 
 判断依据：活动名称、组织方、时间、地点、材料要求。届次、年份、学院、场次不同则不是同一事件。
+
+特别注意：
+- 新信息可能只是简称（例如标题只有「讲座」），并带有变更说明。若原文明确说「地点改了」「时间改了」「还要交某材料」，且提到与已有事件相同的时间、旧地点或同一报名截止，应视为同一事件。
+- 只有确实指向不同届次、不同学院、不同场次或不同活动时，才判为不是同一事件。
+
 输出：
 {"same_event": true|false, "reason": "一句话理由", "relation": "supplement|conflict|duplicate|unrelated"}
 
@@ -291,7 +318,23 @@ def term_key(title: str) -> str | None:
 
 
 def title_similarity(a: str, b: str) -> float:
-    return SequenceMatcher(None, a, b).ratio()
+    """标题相似度：先算编辑距离比例，再处理「简称完整出现在正式标题里」的情况。
+
+    群聊里常只写「讲座」「评选」这类简称，直接算字符比例会被长标题稀释（2/37≈5%），
+    因此简称被完整包含时按覆盖率补足到 0.5 以上。是否同一事件仍由 LLM judge 最终判定。
+    """
+
+    def tight(value: str) -> str:
+        return "".join(ch for ch in normalize(value) if ch.isalnum())
+
+    a_n, b_n = tight(a), tight(b)
+    if not a_n or not b_n:
+        return 0.0
+    ratio = SequenceMatcher(None, a_n, b_n).ratio()
+    short, long = sorted((a_n, b_n), key=len)
+    if len(short) >= 2 and short in long:
+        return max(ratio, 0.5 + 0.5 * len(short) / len(long))
+    return ratio
 
 
 def find_candidates(db: Session, event: Event) -> list[tuple[Event, float, list[str]]]:
@@ -309,6 +352,8 @@ def find_candidates(db: Session, event: Event) -> list[tuple[Event, float, list[
         if sim >= 0.45:
             score += 1
             reasons.append(f"标题相似度 {sim:.0%}")
+        elif sim >= 0.3:
+            reasons.append(f"标题部分相似 {sim:.0%}")
         if event.org and other.org and event.org == other.org:
             score += 1
             reasons.append("同一组织方")
@@ -319,7 +364,8 @@ def find_candidates(db: Session, event: Event) -> list[tuple[Event, float, list[
         if event.location and other.location and event.location == other.location:
             score += 1
             reasons.append("地点相同")
-        if score >= 2 or sim >= 0.7:
+        if score >= 1 or sim >= 0.3:
+            # 阈值只负责「进入候选」；是否为同一事件由后面的 LLM judge 最终判定
             out.append((other, score + sim, reasons))
     out.sort(key=lambda x: x[1], reverse=True)
     return out
@@ -336,13 +382,13 @@ def event_brief(event: Event) -> dict:
     }
 
 
-async def judge_link(a: Event, b: Event) -> LinkJudge:
+async def judge_link(a: Event, b: Event, new_text: str | None = None) -> LinkJudge:
+    content = f"已有事件：{event_brief(a)}\n\n新信息：{event_brief(b)}"
+    if new_text:
+        content += f"\n\n新信息来源原文（变更说明以此为准）：\n{new_text[:4000]}"
     messages = [
         {"role": "system", "content": JUDGE_SYSTEM},
-        {
-            "role": "user",
-            "content": f"已有事件：{event_brief(a)}\n\n新信息：{event_brief(b)}",
-        },
+        {"role": "user", "content": content},
     ]
     try:
         data = await llm.complete_json(messages, temperature=0)
@@ -351,12 +397,12 @@ async def judge_link(a: Event, b: Event) -> LinkJudge:
         return LinkJudge(same_event=True, reason="标题与组织方高度相似", relation="supplement")
 
 
-async def link_event(db: Session, event: Event) -> MergeCandidate | None:
+async def link_event(db: Session, event: Event, new_text: str | None = None) -> MergeCandidate | None:
     candidates = find_candidates(db, event)
     if not candidates:
         return None
     best, score, reasons = candidates[0]
-    verdict = await judge_link(best, event)
+    verdict = await judge_link(best, event, new_text)
     if not verdict.same_event:
         return None
     existing = db.scalar(
@@ -419,7 +465,8 @@ async def run_ingest(job_id: str) -> None:
             db.commit()
             image_path = MEDIA_DIR / (source.image_path or "")
             mime = (source.meta or {}).get("mime", "image/png")
-            text = await llm.vision_transcribe(image_path.read_bytes(), mime, TRANSCRIBE_PROMPT)
+            raw, mime = prepare_image(image_path.read_bytes(), mime)
+            text = await llm.vision_transcribe(raw, mime, TRANSCRIBE_PROMPT)
             text = normalize(text)
             source.text = text
             db.commit()
@@ -446,7 +493,7 @@ async def run_ingest(job_id: str) -> None:
         _set_stage(job, "link", "正在查找同一事件的其他来源…")
         db.commit()
 
-        merge = await link_event(db, event) if event else None
+        merge = await link_event(db, event, text) if event else None
 
         _set_stage(job, "done", "识别完成，等待确认")
         job.state = "done"
