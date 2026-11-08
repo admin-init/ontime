@@ -110,7 +110,9 @@ def _looks_like_article(url: str, title: str, list_url: str) -> bool:
     return len(text) >= 8 and any(h in low_title for h in _TITLE_HINTS)
 
 
-def _extract_links(list_url: str, html: str, selector: str | None) -> list[dict]:
+def _extract_links(
+    list_url: str, html: str, selector: str | None, title_selector: str | None = None
+) -> list[dict]:
     soup = BeautifulSoup(html, "lxml")
     links: dict[str, dict] = {}
 
@@ -120,14 +122,27 @@ def _extract_links(list_url: str, html: str, selector: str | None) -> list[dict]
         nodes = soup.find_all("a", href=True)
 
     for node in nodes:
-        anchor = node if node.name == "a" else node.find("a", href=True)
+        title = ""
+        anchor = None
+        if title_selector:
+            title_node = node.select_one(title_selector)
+            if title_node is not None:
+                title = title_node.get_text(" ", strip=True)
+                anchor = (
+                    title_node
+                    if title_node.name == "a"
+                    else title_node.find("a", href=True)
+                )
+        if anchor is None or not anchor.get("href"):
+            anchor = node if node.name == "a" else node.find("a", href=True)
         if not anchor or not anchor.get("href"):
             continue
         raw = anchor["href"].strip()
         if raw.startswith(("mailto:", "javascript:", "#", "tel:")):
             continue
         url = _clean_url(urljoin(list_url, raw))
-        title = anchor.get_text(" ", strip=True)
+        if not title:
+            title = anchor.get_text(" ", strip=True)
         if not selector and not _looks_like_article(url, title, list_url):
             continue
         if selector and not url.startswith(("http://", "https://")):
@@ -140,14 +155,20 @@ def _extract_links(list_url: str, html: str, selector: str | None) -> list[dict]
     return list(links.values())
 
 
-async def fetch_list_page(url: str, selector: str | None = None) -> dict:
+async def fetch_list_page(
+    url: str, selector: str | None = None, title_selector: str | None = None
+) -> dict:
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         r = await client.get(url, headers={"User-Agent": UA, "Accept-Language": "zh-CN,zh;q=0.9"})
         r.raise_for_status()
     html = _decode_html(r.content, r.charset_encoding)
     soup = BeautifulSoup(html, "lxml")
     title = soup.title.get_text(strip=True) if soup.title else url
-    return {"url": url, "title": title, "links": _extract_links(url, html, selector)}
+    return {
+        "url": url,
+        "title": title,
+        "links": _extract_links(url, html, selector, title_selector),
+    }
 
 
 def _save_raw(name: str, raw: bytes) -> str:
@@ -158,15 +179,21 @@ def _save_raw(name: str, raw: bytes) -> str:
     return str(path.relative_to(STORAGE_DIR)).replace("\\", "/")
 
 
-async def fetch_article(url: str) -> dict | None:
+async def fetch_article(url: str, content_selector: str | None = None) -> dict | None:
     try:
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
             r = await client.get(url, headers={"User-Agent": UA, "Accept-Language": "zh-CN,zh;q=0.9"})
         if r.status_code != 200:
             return None
         html = _decode_html(r.content, r.charset_encoding)
-        text = trafilatura.extract(html, include_comments=False, include_tables=True) or ""
         soup = BeautifulSoup(html, "lxml")
+        text = ""
+        if content_selector:
+            node = soup.select_one(content_selector)
+            if node is not None:
+                text = node.get_text("\n", strip=True)
+        if len(text) < 120:
+            text = trafilatura.extract(html, include_comments=False, include_tables=True) or ""
         if len(text) < 120:
             for tag in soup(["script", "style", "nav", "footer", "header"]):
                 tag.decompose()

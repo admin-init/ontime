@@ -4,7 +4,7 @@ import asyncio
 import io
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import Response
@@ -103,8 +103,15 @@ def _site_payload(site: Site) -> dict:
         "id": site.id,
         "name": site.name,
         "domain": site.domain,
+        "kind": site.kind or "web",
         "list_url": site.list_url,
         "search_url": site.search_url,
+        "api_url": site.api_url,
+        "item_selector": site.item_selector,
+        "title_selector": site.title_selector,
+        "content_selector": site.content_selector,
+        "profile_source": site.profile_source,
+        "verified": bool(site.verified),
         "enabled": bool(site.enabled),
         "created_at": site.created_at.isoformat(),
     }
@@ -312,6 +319,8 @@ CAPABILITIES = [
     {"key": "ics", "name": "日历导出", "level": "live", "note": "导出 .ics"},
     {"key": "crawl", "name": "官网同步", "level": "verified", "note": "已对 UNNC 真实栏目实测抓取与抽取"},
     {"key": "site", "name": "自定义站点", "level": "verified", "note": "真实写入，并在核实时附加 site: 限定"},
+    {"key": "site_agent", "name": "站点调研 Agent", "level": "verified", "note": "真实调用本机 opencode 调研公开列表页，隔离环境、失败如实返回"},
+    {"key": "api_source", "name": "第三方 API 源", "level": "unverified", "note": "已实现 JSON 拉取与抽取，缺真实第三方 Key 验证"},
     {"key": "reminder", "name": "站内提醒", "level": "verified", "note": "按任务截止提前 2 小时生成"},
     {"key": "imap", "name": "邮箱自动连接与检索", "level": "unverified", "note": "已实现只读 IMAP，未用真实账号验证"},
     {"key": "push", "name": "多渠道推送与后台提醒", "level": "entry", "note": "演示暂未接入"},
@@ -969,8 +978,38 @@ def list_sync_runs(target_id: str | None = None, limit: int = 20, db: Session = 
 class SiteCreate(BaseModel):
     name: str
     domain: str
+    kind: Literal["web", "api"] = "web"
     list_url: str | None = None
     search_url: str | None = None
+    api_url: str | None = None
+    # 只写 ~/.ontime/sites.json，绝不入库/回显
+    api_key: str | None = None
+    item_selector: str | None = None
+    title_selector: str | None = None
+    content_selector: str | None = None
+    profile_source: Literal["manual", "agent"] | None = None
+
+
+class SitePatch(BaseModel):
+    name: str | None = None
+    domain: str | None = None
+    kind: Literal["web", "api"] | None = None
+    list_url: str | None = None
+    search_url: str | None = None
+    api_url: str | None = None
+    api_key: str | None = None
+    item_selector: str | None = None
+    title_selector: str | None = None
+    content_selector: str | None = None
+    profile_source: Literal["manual", "agent"] | None = None
+    verified: bool | None = None
+    enabled: bool | None = None
+
+
+class SiteResearch(BaseModel):
+    url: str
+    task: str | None = None
+    site_id: str | None = None
 
 
 def _normalize_domain(value: str) -> str:
@@ -979,6 +1018,24 @@ def _normalize_domain(value: str) -> str:
         raw = raw.split("://", 1)[1]
     raw = raw.split("/", 1)[0].split("?", 1)[0]
     return raw.strip().strip(".")[:255]
+
+
+def _clean_url_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    if not _valid_url(text):
+        raise HTTPException(400, "站点地址必须是 http/https")
+    return text
+
+
+def _clean_selector(value: str | None) -> str | None:
+    if value is None:
+        return None
+    text = value.strip()
+    return text[:1000] or None
 
 
 @router.get("/sites")
@@ -994,17 +1051,112 @@ def create_site(body: SiteCreate, db: Session = Depends(get_db)):
         raise HTTPException(400, "请填写站点名称与域名")
     if db.scalar(select(Site).where(Site.domain == domain)):
         raise HTTPException(409, "该站点已存在")
-    for value in (body.list_url, body.search_url):
-        if value and not _valid_url(value.strip()):
-            raise HTTPException(400, "站点地址必须是 http/https")
+    list_url = _clean_url_value(body.list_url)
+    search_url = _clean_url_value(body.search_url)
+    api_url = _clean_url_value(body.api_url)
+    if body.kind == "api" and not api_url:
+        raise HTTPException(400, "API 源必须填写 api_url")
+    selectors = {
+        "item_selector": _clean_selector(body.item_selector),
+        "title_selector": _clean_selector(body.title_selector),
+        "content_selector": _clean_selector(body.content_selector),
+    }
+    profile_source = body.profile_source
+    if profile_source is None and any(selectors.values()):
+        profile_source = "manual"
     site = Site(
         name=body.name.strip()[:128],
         domain=domain,
-        list_url=(body.list_url or "").strip() or None,
-        search_url=(body.search_url or "").strip() or None,
+        kind=body.kind,
+        list_url=list_url,
+        search_url=search_url,
+        api_url=api_url,
+        profile_source=profile_source,
+        verified=False,
         enabled=True,
+        **selectors,
     )
     db.add(site)
+    db.commit()
+    if body.api_key:
+        from app.services.site_sync import save_site_key
+
+        save_site_key(site.id, body.api_key)
+    return _site_payload(site)
+
+
+@router.post("/sites/research")
+async def research_site(body: SiteResearch, db: Session = Depends(get_db)):
+    from app.services.site_agent import RESEARCH_STEPS, run_site_research
+
+    url = (body.url or "").strip()
+    site: Site | None = None
+    if body.site_id:
+        site = db.get(Site, body.site_id)
+        if site is None:
+            raise HTTPException(404, "站点不存在")
+        if not url:
+            url = site.list_url or ""
+    if not _valid_url(url):
+        raise HTTPException(400, "调研地址必须是 http/https")
+    job = Job(
+        type="site_research",
+        payload={"url": url, "task": body.task, "site_id": body.site_id},
+        state="queued",
+        stage={
+            "stage": "queued",
+            "steps": [{"key": k, "label": label, "state": "todo"} for k, label in RESEARCH_STEPS],
+            "message": "排队中…",
+        },
+    )
+    db.add(job)
+    db.commit()
+    asyncio.create_task(run_site_research(job.id))
+    return {"job_id": job.id}
+
+
+@router.patch("/sites/{site_id}")
+def patch_site(site_id: str, body: SitePatch, db: Session = Depends(get_db)):
+    site = db.get(Site, site_id)
+    if not site:
+        raise HTTPException(404, "站点不存在")
+    data = body.model_dump(exclude_unset=True)
+
+    if "domain" in data and data["domain"] is not None:
+        domain = _normalize_domain(data["domain"])
+        if not domain:
+            raise HTTPException(400, "域名不能为空")
+        other = db.scalar(select(Site).where(Site.domain == domain, Site.id != site.id))
+        if other:
+            raise HTTPException(409, "该域名已被其他站点使用")
+        site.domain = domain
+    if "name" in data and data["name"] is not None:
+        name = data["name"].strip()
+        if not name:
+            raise HTTPException(400, "站点名称不能为空")
+        site.name = name[:128]
+    if "kind" in data and data["kind"] is not None:
+        site.kind = data["kind"]
+    for field in ("list_url", "search_url", "api_url"):
+        if field in data:
+            setattr(site, field, _clean_url_value(data[field]))
+    for field in ("item_selector", "title_selector", "content_selector"):
+        if field in data:
+            setattr(site, field, _clean_selector(data[field]))
+    if "profile_source" in data:
+        site.profile_source = data["profile_source"]
+    elif any(f in data for f in ("item_selector", "title_selector", "content_selector")):
+        site.profile_source = site.profile_source or "manual"
+    if "verified" in data and data["verified"] is not None:
+        site.verified = bool(data["verified"])
+    if "enabled" in data and data["enabled"] is not None:
+        site.enabled = bool(data["enabled"])
+    if site.kind == "api" and not site.api_url:
+        raise HTTPException(400, "API 源必须填写 api_url")
+    if "api_key" in data:
+        from app.services.site_sync import save_site_key
+
+        save_site_key(site.id, data["api_key"])
     db.commit()
     return _site_payload(site)
 
@@ -1014,9 +1166,28 @@ def delete_site(site_id: str, db: Session = Depends(get_db)):
     site = db.get(Site, site_id)
     if not site:
         raise HTTPException(404, "站点不存在")
+    from app.services.site_sync import save_site_key
+
+    save_site_key(site.id, None)
     db.delete(site)
     db.commit()
     return {"ok": True}
+
+
+@router.post("/sites/{site_id}/sync")
+async def sync_site(site_id: str, db: Session = Depends(get_db)):
+    from app.services.site_sync import create_site_sync_job, run_site_sync
+
+    site = db.get(Site, site_id)
+    if not site:
+        raise HTTPException(404, "站点不存在")
+    if site.kind == "api" and not site.api_url:
+        raise HTTPException(400, "该 API 源没有 api_url")
+    if site.kind != "api" and not site.list_url:
+        raise HTTPException(400, "该站点没有列表地址")
+    job = create_site_sync_job(db, site)
+    asyncio.create_task(run_site_sync(job.id))
+    return {"job_id": job.id}
 
 
 # ---------------------------------------------------------------- 邮件

@@ -81,6 +81,25 @@ def _ensure_sqlite_columns() -> None:
             )
             conn.commit()
 
+        # 阶段二：Site 扩展（kind / 选择器 / API / 验证状态）
+        site_columns = {
+            row[1] for row in conn.exec_driver_sql("PRAGMA table_info(site)").fetchall()
+        }
+        site_additions = {
+            "kind": "VARCHAR(8) DEFAULT 'web'",
+            "api_url": "TEXT",
+            "item_selector": "TEXT",
+            "title_selector": "TEXT",
+            "content_selector": "TEXT",
+            "profile_source": "VARCHAR(8)",
+            "verified": "BOOLEAN DEFAULT 0",
+        }
+        if site_columns:
+            for name, ddl in site_additions.items():
+                if name not in site_columns:
+                    conn.exec_driver_sql(f"ALTER TABLE site ADD COLUMN {name} {ddl}")
+            conn.commit()
+
 
 def init_db() -> None:
     from app import models  # noqa: F401  确保模型注册

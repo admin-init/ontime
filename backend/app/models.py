@@ -139,8 +139,18 @@ class Site(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
     name: Mapped[str] = mapped_column(String(128))
     domain: Mapped[str] = mapped_column(String(255), unique=True)
+    kind: Mapped[str] = mapped_column(String(8), default="web")  # web | api
     list_url: Mapped[str | None] = mapped_column(Text)
     search_url: Mapped[str | None] = mapped_column(Text)
+    # kind="api" 时使用；api_key 只写 ~/.ontime/sites.json，不入库
+    api_url: Mapped[str | None] = mapped_column(Text)
+    # 列表/正文选择器：由 agent 调研或手动填写
+    item_selector: Mapped[str | None] = mapped_column(Text)
+    title_selector: Mapped[str | None] = mapped_column(Text)
+    content_selector: Mapped[str | None] = mapped_column(Text)
+    profile_source: Mapped[str | None] = mapped_column(String(8))  # manual | agent
+    # 是否用真实抓取验证过；API 源没有真实 Key 时保持 false
+    verified: Mapped[bool] = mapped_column(default=False)
     enabled: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utcnow)
 
