@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from PIL import Image
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app import llm
@@ -39,7 +39,9 @@ from app.models import (
     Profile,
     Reminder,
     Rule,
+    Site,
     Source,
+    SyncRun,
     Task,
     WatchTarget,
 )
@@ -62,6 +64,65 @@ EVENT_LABEL_FIELDS = [
 
 def _all_sources(db: Session) -> dict[str, Source]:
     return {s.id: s for s in db.scalars(select(Source)).all()}
+
+
+def _watch_target_payload(db: Session, target: WatchTarget) -> dict:
+    source_count = db.scalar(
+        select(func.count()).select_from(Source).where(Source.watch_target_id == target.id)
+    ) or 0
+    return {
+        "id": target.id,
+        "name": target.name,
+        "url": target.url,
+        "selector": target.selector,
+        "cron": target.cron,
+        "enabled": bool(target.enabled),
+        "last_run_at": target.last_run_at.isoformat() if target.last_run_at else None,
+        "last_error": target.last_error,
+        "last_status": target.last_status or "never",
+        "source_count": int(source_count),
+    }
+
+
+def _sync_run_payload(run: SyncRun) -> dict:
+    return {
+        "id": run.id,
+        "target_id": run.target_id,
+        "started_at": run.started_at.isoformat(),
+        "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+        "status": run.status,
+        "found": run.found,
+        "created": run.created,
+        "changed": run.changed,
+        "error": run.error,
+    }
+
+
+def _site_payload(site: Site) -> dict:
+    return {
+        "id": site.id,
+        "name": site.name,
+        "domain": site.domain,
+        "list_url": site.list_url,
+        "search_url": site.search_url,
+        "enabled": bool(site.enabled),
+        "created_at": site.created_at.isoformat(),
+    }
+
+
+def _reminder_payload(db: Session, reminder: Reminder) -> dict:
+    task = db.get(Task, reminder.task_id) if reminder.task_id else None
+    event_id = reminder.event_id or (task.event_id if task else None)
+    event = db.get(Event, event_id) if event_id else None
+    title = task.action if task else (event.title if event else "提醒")
+    return {
+        "id": reminder.id,
+        "task_id": reminder.task_id,
+        "event_id": event_id,
+        "title": title,
+        "fire_at": reminder.fire_at.isoformat(),
+        "state": reminder.state,
+    }
 
 
 def _field_payload(db: Session, entity_type: str, entity_id: str, field: str, label: str, source_map=None) -> dict:
@@ -249,8 +310,10 @@ CAPABILITIES = [
     {"key": "link", "name": "跨来源关联与冲突提示", "level": "live", "note": "提出合并建议，由你确认"},
     {"key": "verify", "name": "联网核实", "level": "live", "note": "真实检索并抓取原文"},
     {"key": "ics", "name": "日历导出", "level": "live", "note": "导出 .ics"},
-    {"key": "crawl", "name": "官网定时抓取", "level": "entry", "note": "演示暂未接入，仅保留入口"},
-    {"key": "imap", "name": "邮箱自动连接与检索", "level": "entry", "note": "演示暂未接入"},
+    {"key": "crawl", "name": "官网同步", "level": "verified", "note": "已对 UNNC 真实栏目实测抓取与抽取"},
+    {"key": "site", "name": "自定义站点", "level": "verified", "note": "真实写入，并在核实时附加 site: 限定"},
+    {"key": "reminder", "name": "站内提醒", "level": "verified", "note": "按任务截止提前 2 小时生成"},
+    {"key": "imap", "name": "邮箱自动连接与检索", "level": "unverified", "note": "已实现只读 IMAP，未用真实账号验证"},
     {"key": "push", "name": "多渠道推送与后台提醒", "level": "entry", "note": "演示暂未接入"},
 ]
 
@@ -795,12 +858,353 @@ def today(db: Session = Depends(get_db)):
     }
 
 
+# ---------------------------------------------------------------- 官网同步
+
+
+class WatchTargetCreate(BaseModel):
+    name: str
+    url: str
+    selector: str | None = None
+    cron: str | None = None
+
+
+class WatchTargetPatch(BaseModel):
+    name: str | None = None
+    selector: str | None = None
+    cron: str | None = None
+    enabled: bool | None = None
+
+
+def _valid_url(url: str) -> bool:
+    return url.lower().startswith(("http://", "https://")) and len(url) <= 2000
+
+
+@router.get("/watch-targets")
+def list_watch_targets(db: Session = Depends(get_db)):
+    rows = db.scalars(select(WatchTarget).order_by(WatchTarget.created_at.desc())).all()
+    return {"items": [_watch_target_payload(db, t) for t in rows]}
+
+
+@router.post("/watch-targets")
+def create_watch_target(body: WatchTargetCreate, db: Session = Depends(get_db)):
+    if not body.name.strip() or not _valid_url(body.url.strip()):
+        raise HTTPException(400, "请填写名称与 http/https 栏目地址")
+    target = WatchTarget(
+        kind="web",
+        name=body.name.strip()[:128],
+        url=body.url.strip(),
+        selector=(body.selector or "").strip() or None,
+        cron=(body.cron or "").strip() or None,
+        enabled=True,
+        last_status="never",
+    )
+    db.add(target)
+    db.commit()
+    from app.scheduler import reload_jobs
+
+    reload_jobs()
+    return _watch_target_payload(db, target)
+
+
+@router.patch("/watch-targets/{target_id}")
+def patch_watch_target(target_id: str, body: WatchTargetPatch, db: Session = Depends(get_db)):
+    target = db.get(WatchTarget, target_id)
+    if not target:
+        raise HTTPException(404, "同步目标不存在")
+    if body.name is not None:
+        target.name = body.name.strip()[:128] or target.name
+    if body.selector is not None:
+        target.selector = body.selector.strip() or None
+    if body.cron is not None:
+        target.cron = body.cron.strip() or None
+    if body.enabled is not None:
+        target.enabled = body.enabled
+    db.commit()
+    from app.scheduler import reload_jobs
+
+    reload_jobs()
+    return _watch_target_payload(db, target)
+
+
+@router.delete("/watch-targets/{target_id}")
+def delete_watch_target(target_id: str, db: Session = Depends(get_db)):
+    target = db.get(WatchTarget, target_id)
+    if not target:
+        raise HTTPException(404, "同步目标不存在")
+    db.delete(target)
+    db.commit()
+    from app.scheduler import reload_jobs
+
+    reload_jobs()
+    return {"ok": True}
+
+
+@router.post("/watch-targets/{target_id}/sync")
+async def sync_watch_target(target_id: str, db: Session = Depends(get_db)):
+    target = db.get(WatchTarget, target_id)
+    if not target:
+        raise HTTPException(404, "同步目标不存在")
+    if not target.url:
+        raise HTTPException(400, "该目标没有栏目地址")
+    from app.crawl import create_crawl_job, run_crawl
+
+    job = create_crawl_job(db, target)
+    asyncio.create_task(run_crawl(job.id))
+    return {"job_id": job.id}
+
+
+@router.get("/sync-runs")
+def list_sync_runs(target_id: str | None = None, limit: int = 20, db: Session = Depends(get_db)):
+    limit = max(1, min(limit, 100))
+    stmt = select(SyncRun).order_by(SyncRun.started_at.desc()).limit(limit)
+    if target_id:
+        stmt = stmt.where(SyncRun.target_id == target_id)
+    rows = db.scalars(stmt).all()
+    return {"items": [_sync_run_payload(r) for r in rows]}
+
+
+# ---------------------------------------------------------------- 自定义站点
+
+
+class SiteCreate(BaseModel):
+    name: str
+    domain: str
+    list_url: str | None = None
+    search_url: str | None = None
+
+
+def _normalize_domain(value: str) -> str:
+    raw = (value or "").strip().lower()
+    if "://" in raw:
+        raw = raw.split("://", 1)[1]
+    raw = raw.split("/", 1)[0].split("?", 1)[0]
+    return raw.strip().strip(".")[:255]
+
+
+@router.get("/sites")
+def list_sites(db: Session = Depends(get_db)):
+    rows = db.scalars(select(Site).order_by(Site.created_at.desc())).all()
+    return {"items": [_site_payload(s) for s in rows]}
+
+
+@router.post("/sites")
+def create_site(body: SiteCreate, db: Session = Depends(get_db)):
+    domain = _normalize_domain(body.domain)
+    if not body.name.strip() or not domain:
+        raise HTTPException(400, "请填写站点名称与域名")
+    if db.scalar(select(Site).where(Site.domain == domain)):
+        raise HTTPException(409, "该站点已存在")
+    for value in (body.list_url, body.search_url):
+        if value and not _valid_url(value.strip()):
+            raise HTTPException(400, "站点地址必须是 http/https")
+    site = Site(
+        name=body.name.strip()[:128],
+        domain=domain,
+        list_url=(body.list_url or "").strip() or None,
+        search_url=(body.search_url or "").strip() or None,
+        enabled=True,
+    )
+    db.add(site)
+    db.commit()
+    return _site_payload(site)
+
+
+@router.delete("/sites/{site_id}")
+def delete_site(site_id: str, db: Session = Depends(get_db)):
+    site = db.get(Site, site_id)
+    if not site:
+        raise HTTPException(404, "站点不存在")
+    db.delete(site)
+    db.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------- 邮件
+
+
+@router.post("/mail/import")
+async def mail_import(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    from app.mail import import_parsed_message, parse_eml_bytes
+    from app.pipeline import run_ingest as _run_ingest
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "空文件")
+    try:
+        parsed_messages = parse_eml_bytes(raw, file.filename or "")
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"无法解析邮件：{str(e)[:200]}") from e
+
+    job_ids: list[str] = []
+    source_ids: list[str] = []
+    for parsed in parsed_messages:
+        result = import_parsed_message(db, parsed, raw=raw if len(parsed_messages) == 1 else None)
+        if result is None:
+            continue
+        source, job = result
+        source_ids.append(source.id)
+        job_ids.append(job.id)
+    if not job_ids:
+        raise HTTPException(409, "邮件已导入过（Message-ID 重复）")
+
+    for job_id in job_ids:
+        asyncio.create_task(_run_ingest(job_id))
+    return {"job_ids": job_ids, "source_ids": source_ids}
+
+
+@router.get("/mail/imports")
+def mail_imports(db: Session = Depends(get_db)):
+    sources = db.scalars(
+        select(Source).where(Source.kind == "mail").order_by(Source.fetched_at.desc()).limit(100)
+    ).all()
+    jobs = db.scalars(select(Job).where(Job.type == "parse").order_by(Job.created_at.desc())).all()
+    job_by_source: dict[str, str] = {}
+    for job in jobs:
+        sid = (job.payload or {}).get("source_id")
+        if sid and sid not in job_by_source:
+            job_by_source[sid] = job.state
+    return {
+        "items": [
+            {
+                "source_id": s.id,
+                "subject": s.title,
+                "from": s.org,
+                "date": s.published_at.isoformat() if s.published_at else None,
+                "job_state": job_by_source.get(s.id, "unknown"),
+            }
+            for s in sources
+        ]
+    }
+
+
+class ImapBody(BaseModel):
+    host: str
+    port: int = 993
+    username: str
+    password: str
+
+
+class ImapSyncBody(ImapBody):
+    since_days: int = 7
+    query: str | None = None
+
+
+@router.post("/mail/imap/test")
+async def mail_imap_test(body: ImapBody):
+    from app.mail import imap_test, load_imap_config, save_imap_config
+
+    ok, message = await imap_test(body.host.strip(), body.port, body.username.strip(), body.password)
+    if ok:
+        cfg = load_imap_config()
+        cfg.update(
+            {
+                "host": body.host.strip(),
+                "port": body.port,
+                "username": body.username.strip(),
+                "password": body.password,
+                "verified": True,
+                "error": None,
+            }
+        )
+        save_imap_config(cfg)
+    return {"ok": ok, "message": message}
+
+
+@router.post("/mail/imap/sync")
+async def mail_imap_sync(body: ImapSyncBody, db: Session = Depends(get_db)):
+    from app.mail import load_imap_config, run_mail_sync, save_imap_config
+
+    cfg = load_imap_config()
+    cfg.update(
+        {
+            "host": body.host.strip(),
+            "port": body.port,
+            "username": body.username.strip(),
+            "password": body.password,
+            "verified": False,
+            "error": None,
+        }
+    )
+    save_imap_config(cfg)
+    job = Job(
+        type="mail_sync",
+        payload={
+            "since_days": max(1, min(body.since_days, 90)),
+            "query": (body.query or "").strip() or None,
+        },
+        state="queued",
+    )
+    db.add(job)
+    db.commit()
+    asyncio.create_task(run_mail_sync(job.id))
+    return {"job_id": job.id}
+
+
+@router.get("/mail/imap/status")
+def mail_imap_status():
+    from app.mail import imap_status
+
+    return imap_status()
+
+
+# ---------------------------------------------------------------- 提醒
+
+
+@router.get("/reminders")
+def list_reminders(db: Session = Depends(get_db)):
+    rows = db.scalars(select(Reminder).order_by(Reminder.fire_at)).all()
+    return {"items": [_reminder_payload(db, r) for r in rows]}
+
+
+@router.post("/reminders/sync")
+def sync_reminders(db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc)
+    tasks = db.scalars(
+        select(Task).where(Task.state == "open", Task.due_at.is_not(None))
+    ).all()
+    created = 0
+    for task in tasks:
+        if task.due_at is None or task.due_at <= now:
+            continue
+        fire_at = task.due_at - timedelta(hours=2)
+        existing = db.scalar(
+            select(Reminder).where(Reminder.task_id == task.id, Reminder.fire_at == fire_at)
+        )
+        if existing:
+            continue
+        db.add(
+            Reminder(
+                task_id=task.id,
+                event_id=task.event_id,
+                fire_at=fire_at,
+                channel="inapp",
+                state="scheduled",
+            )
+        )
+        created += 1
+    db.commit()
+    return {"created": created}
+
+
+@router.post("/reminders/{reminder_id}/dismiss")
+def dismiss_reminder(reminder_id: str, db: Session = Depends(get_db)):
+    reminder = db.get(Reminder, reminder_id)
+    if not reminder:
+        raise HTTPException(404, "提醒不存在")
+    reminder.state = "dismissed"
+    db.commit()
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------- 演示重置
 
 
 @router.post("/demo/reset")
 def demo_reset(db: Session = Depends(get_db)):
-    for model in (Change, MergeCandidate, Reminder, Job, PipelineRun, Claim, Rule, Task, Event, Source, WatchTarget):
+    for model in (
+        Change, MergeCandidate, Reminder, Job, PipelineRun, Claim, Rule, Task, Event,
+        Source, SyncRun, WatchTarget, Site,
+    ):
         db.execute(delete(model))
     db.commit()
     for p in (MEDIA_DIR / "screenshots").glob("*"):

@@ -99,9 +99,50 @@ class WatchTarget(Base):
     enabled: Mapped[bool] = mapped_column(default=True)
     last_run_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     last_error: Mapped[str | None] = mapped_column(Text)
+    # never | ok | partial | failed
+    last_status: Mapped[str] = mapped_column(String(16), default="never")
     created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utcnow)
 
     sources: Mapped[list["Source"]] = relationship(back_populates="watch_target")
+    sync_runs: Mapped[list["SyncRun"]] = relationship(
+        back_populates="target", cascade="all, delete-orphan"
+    )
+
+
+class SyncRun(Base):
+    """一次官网同步的审计记录：找到/新建/变更/失败各多少。"""
+
+    __tablename__ = "sync_run"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    target_id: Mapped[str] = mapped_column(
+        ForeignKey("watch_target.id", ondelete="CASCADE"), index=True
+    )
+    started_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    status: Mapped[str] = mapped_column(String(16), default="running")  # running|ok|partial|failed
+    found: Mapped[int] = mapped_column(Integer, default=0)
+    created: Mapped[int] = mapped_column(Integer, default=0)
+    changed: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str | None] = mapped_column(Text)
+
+    target: Mapped[WatchTarget] = relationship(back_populates="sync_runs")
+
+    __table_args__ = (Index("ix_sync_run_target_started", "target_id", "started_at"),)
+
+
+class Site(Base):
+    """自定义站点：只用于订阅列表页与核实时附加 site:domain，不做登录/脚本。"""
+
+    __tablename__ = "site"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    name: Mapped[str] = mapped_column(String(128))
+    domain: Mapped[str] = mapped_column(String(255), unique=True)
+    list_url: Mapped[str | None] = mapped_column(Text)
+    search_url: Mapped[str | None] = mapped_column(Text)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(UtcDateTime, default=utcnow)
 
 
 class Source(Base):

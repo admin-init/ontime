@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from app import llm
 from app.claims import TASK_LABELS, EVENT_LABELS, dt_parts, fmt_value, parse_dt
 from app.core import settings
-from app.models import Event, Job, Source
+from app.models import Event, Job, Site, Source
 from app.pipeline import QuoteIndex, normalize
 from app.schemas import Finding, JudgeResult
 
@@ -403,15 +403,31 @@ async def verify_event(db: Session, event: Event, job: Job) -> dict:
         f"{settings.school_name} {event.title} 通知",
         f"{event.title} site:{settings.school_domain}",
     ]
+    # 自定义站点只追加最多 3 个 site: 限定，避免查询被撑爆。
+    sites = db.scalars(
+        select(Site).where(Site.enabled.is_(True)).order_by(Site.created_at).limit(3)
+    ).all()
+    site_queries: list[str] = []
+    for site in sites:
+        domain = (site.domain or "").strip()
+        if domain:
+            q = f"{event.title} site:{domain}"
+            if q not in site_queries:
+                site_queries.append(q)
+    queries.extend(site_queries)
+
     seen: set[str] = set()
     hits: list[dict] = []
+    pending_site_queries = set(site_queries)
     for q in queries:
         for hit in await search_web(q, limit=5):
             if hit["url"] in seen:
                 continue
             seen.add(hit["url"])
             hits.append(hit)
-        if len(hits) >= 5:
+        pending_site_queries.discard(q)
+        # 前面的查询已够用时可以停，但自定义站点的 site: 查询必须真正跑完。
+        if len(hits) >= 5 and not pending_site_queries:
             break
 
     job.stage = {

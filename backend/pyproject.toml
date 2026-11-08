@@ -17,6 +17,8 @@ dependencies = [
     "icalendar>=6.1",
     "trafilatura>=1.12",
     "pypdf>=5.1",
+    "apscheduler>=3.11.3",
+    "imap-tools>=1.16.0",
 ]
 
 [dependency-groups]

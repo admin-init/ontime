@@ -3,12 +3,15 @@
 后端 base：`/api`。开发期前端 `vite` 代理 `/api` → `http://127.0.0.1:8000`。
 所有时间为 ISO 字符串；`*_display` 字段是后端已格式化好的中文展示文本，前端直接渲染，不要再自己算。
 
+> **阶段一新增接口（官网同步 / 自定义站点 / 邮件 / 提醒）以
+> [`API契约_v1.1_阶段一.md`](./API契约_v1.1_阶段一.md) 为准，本文件既有接口不变。**
+
 ## 通用对象
 
 ```ts
 type Claim = {
   id: string; value: any; display: string | null;
-  status: "supported" | "user_confirmed" | "conflict" | "needs_anchor" | "insufficient" | "rejected";
+  status: "supported" | "user_confirmed" | "conflict" | "needs_anchor" | "insufficient" | "rejected" | "stale";
   origin: "model" | "user" | "rule" | "import";
   quote: string | null; quote_start: number | null; quote_end: number | null;
   source: { id: string; kind: "screenshot"|"text"|"web"|"mail"|"link";
@@ -56,7 +59,7 @@ type EventDetail = EventBrief & {
 | 方法 | 路径 | 返回 |
 |---|---|---|
 | GET | `/api/health` | `{ok, db, model:{ok,model,error?}, school, college}` |
-| GET | `/api/capabilities` | `{items:[{key,name,level:"live"\|"entry",note}]}` |
+| GET | `/api/capabilities` | `{items:[{key,name,level:"live"\|"entry"\|"verified"\|"unverified",note}]}`（阶段一新增 `verified`/`unverified`，见 v1.1） |
 | GET | `/api/today` | `{events: EventBrief[], tasks: TaskRow[], candidates: number}`，`TaskRow={id,event_id,event_title,action,due_at,due_display,state}`；`events` 与 `tasks` 只含 `state=confirmed` 的事件，候选事件不计入行动台 |
 | GET | `/api/inbox` | `{candidates: Candidate[], merges: Merge[], changes: [], counts:{candidates,merges,changes}}` |
 | GET | `/api/events` | `{items: EventBrief[]}` |

@@ -212,7 +212,9 @@ def _persist(db: Session, source: Source, result: ExtractionResult, idx: QuoteIn
     meta["actionable"] = result.actionable
     source.meta = meta
 
-    if not result.actionable and not result.events:
+    # 新闻/宣传稿一律不进候选：actionable=false 时即使模型列出了活动/会议，
+    # 也只保留来源与摘要，不生成待确认事件。
+    if not result.actionable:
         source.status = "parsed"
         db.commit()
         return None
@@ -460,14 +462,22 @@ async def run_ingest(job_id: str) -> None:
 
         text = source.text
         if job.payload.get("has_image"):
-            _set_stage(job, "ocr", "正在识别截图中的文字…")
+            _set_stage(job, "ocr", "正在识别图片中的文字…")
             job.stage = {**(job.stage or {}), "stage": "ocr"}
             db.commit()
-            image_path = MEDIA_DIR / (source.image_path or "")
+            paths = job.payload.get("image_paths") or ([source.image_path] if source.image_path else [])
             mime = (source.meta or {}).get("mime", "image/png")
-            raw, mime = prepare_image(image_path.read_bytes(), mime)
-            text = await llm.vision_transcribe(raw, mime, TRANSCRIBE_PROMPT)
-            text = normalize(text)
+            ocr_parts: list[str] = []
+            for rel in paths:
+                image_path = MEDIA_DIR / rel
+                if not image_path.is_file():
+                    continue
+                raw, part_mime = prepare_image(image_path.read_bytes(), mime)
+                ocr_parts.append(await llm.vision_transcribe(raw, part_mime, TRANSCRIBE_PROMPT))
+            ocr_text = normalize("\n\n".join(p for p in ocr_parts if p.strip()))
+            # 邮件正文不能因为图片 OCR 被覆盖：OCR 作为补充段追加。
+            if ocr_text:
+                text = f"{text}\n\n[图片附件文字]\n{ocr_text}".strip() if text.strip() else ocr_text
             source.text = text
             db.commit()
 
@@ -514,6 +524,9 @@ async def run_ingest(job_id: str) -> None:
             job.state = "failed"
             job.last_error = str(e)[:800]
             _set_stage(job, (job.stage or {}).get("stage", "extract"), "处理失败", failed=True)
+            failed_source = db.get(Source, (job.payload or {}).get("source_id"))
+            if failed_source is not None:
+                failed_source.status = "failed"
             db.commit()
     finally:
         db.close()

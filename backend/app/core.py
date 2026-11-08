@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{(BACKEND_DIR / 'ontime.db').as_posix()}"
     demo_mode: bool = True
 
+    # 阶段一：官网定时同步。设为 0 / false 可整体关闭调度，只保留手动同步。
+    scheduler_enabled: bool = True
+
     @property
     def resolved_key(self) -> str:
         if self.llm_api_key:
@@ -65,10 +68,25 @@ def _sqlite_pragma(dbapi_conn, _record):  # noqa: ANN001
 SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False, autoflush=False, future=True)
 
 
+def _ensure_sqlite_columns() -> None:
+    """Demo 阶段没有迁移工具：只给已存在的表补新增列，幂等。"""
+    if not settings.database_url.startswith("sqlite"):
+        return
+    with _engine.connect() as conn:
+        rows = conn.exec_driver_sql("PRAGMA table_info(watch_target)").fetchall()
+        columns = {row[1] for row in rows}
+        if columns and "last_status" not in columns:
+            conn.exec_driver_sql(
+                "ALTER TABLE watch_target ADD COLUMN last_status VARCHAR(16) DEFAULT 'never'"
+            )
+            conn.commit()
+
+
 def init_db() -> None:
     from app import models  # noqa: F401  确保模型注册
 
     models.Base.metadata.create_all(_engine)
+    _ensure_sqlite_columns()
     for d in (STORAGE_DIR, MEDIA_DIR, MEDIA_DIR / "screenshots"):
         d.mkdir(parents=True, exist_ok=True)
 

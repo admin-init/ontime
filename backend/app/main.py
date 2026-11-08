@@ -40,7 +40,13 @@ def _recover_interrupted_jobs() -> None:
 async def lifespan(_app: FastAPI):
     init_db()
     _recover_interrupted_jobs()
-    yield
+    from app.scheduler import shutdown_scheduler, start_scheduler
+
+    start_scheduler()
+    try:
+        yield
+    finally:
+        shutdown_scheduler()
 
 
 app = FastAPI(title="到点 · ontime", version="0.2.0", lifespan=lifespan)
