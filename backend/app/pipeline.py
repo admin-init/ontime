@@ -204,6 +204,12 @@ def gate_field(
 # ---------------------------------------------------------------- 落库
 
 
+def _action_key(value) -> str:
+    """task 匹配键：去掉标点/空白，避免模型在 action 里多写一个句号就变成新任务。"""
+    text = value if isinstance(value, str) else str(value or "")
+    return "".join(ch for ch in unicodedata.normalize("NFKC", text).lower() if ch.isalnum())
+
+
 def _persist(db: Session, source: Source, result: ExtractionResult, idx: QuoteIndex) -> Event | None:
     meta = dict(source.meta or {})
     meta["questions"] = result.questions
@@ -240,23 +246,75 @@ def _persist(db: Session, source: Source, result: ExtractionResult, idx: QuoteIn
     event: Event | None = None
     if result.events:
         ex: ExtractedEvent = result.events[0]
-        event = Event(title=ex.title.value or "未命名事件", org=settings.college_name)
-        db.add(event)
-        db.flush()
+        # 同一来源再次抽取（例如官网正文变更后重跑）必须挂到它原有的 event 上。
+        # 旧 claim 已由 crawl.mark_source_changed 标 stale，新 claim 正常追加；
+        # 若每次都新建 Event，收件箱会出现同 URL 的重复候选。
+        prior = db.scalars(
+            select(Claim)
+            .where(Claim.source_id == source.id, Claim.entity_type == "event")
+            .order_by(Claim.created_at)
+        ).first()
+        event = db.get(Event, prior.entity_id) if prior else None
+        if event is None:
+            event = Event(title=ex.title.value or "未命名事件", org=settings.college_name)
+            db.add(event)
+            db.flush()
         for field in ("title", "location", "org", "audience"):
             claim("event", event.id, field, getattr(ex, field))
         claim("event", event.id, "start_at", ex.start_at, time_field=True)
         claim("event", event.id, "end_at", ex.end_at, time_field=True)
         refresh_event(db, event)
 
+    # 同一来源重跑时，已有的 task 也复用：否则新增一条 task 会在收件箱里
+    # 与旧 task 并列成重复待办。先按 action 文本（去标点/空白）精确匹配；
+    # 模型换了说法时，剩余任务按该来源的历史顺序一一对应。
+    prior_by_key: dict[str, list[Task]] = {}
+    prior_order: list[Task] = []
+    if event is not None:
+        event_task_ids = {t.id for t in event.tasks}
+        for row in db.scalars(
+            select(Claim)
+            .where(
+                Claim.entity_type == "task",
+                Claim.source_id == source.id,
+                Claim.field == "action",
+            )
+            .order_by(Claim.created_at)
+        ):
+            if row.entity_id not in event_task_ids:
+                continue
+            task = db.get(Task, row.entity_id)
+            if task is None:
+                continue
+            key = _action_key(row.value)
+            if key:
+                prior_by_key.setdefault(key, []).append(task)
+            if task not in prior_order:
+                prior_order.append(task)
+
+    extracted = [t for t in result.tasks if t.action.value]
+    assignment: dict[int, Task] = {}
+    remaining = list(prior_order)
+    for i, ex_task in enumerate(extracted):
+        bucket = prior_by_key.get(_action_key(ex_task.action.value))
+        while bucket:
+            candidate = bucket.pop(0)
+            if candidate in remaining:
+                assignment[i] = candidate
+                remaining.remove(candidate)
+                break
+    for i, _ in enumerate(extracted):
+        if i not in assignment and remaining:
+            assignment[i] = remaining.pop(0)
+
     task_objs: list[Task] = []
-    for ex_task in result.tasks:
+    for i, ex_task in enumerate(extracted):
         ex_task: ExtractedTask
-        if not ex_task.action.value:
-            continue
-        task = Task(action=ex_task.action.value, event_id=event.id if event else None)
-        db.add(task)
-        db.flush()
+        task = assignment.get(i)
+        if task is None:
+            task = Task(action=ex_task.action.value, event_id=event.id if event else None)
+            db.add(task)
+            db.flush()
         claim("task", task.id, "action", ex_task.action)
         claim("task", task.id, "due_at", ex_task.due_at, time_field=True)
         claim("task", task.id, "submit_channel", ex_task.submit_channel)
