@@ -19,7 +19,7 @@ type Claim = {
 type Field = {
   key: string; label: string;            // label 已是中文，如「活动时间」
   value: any; display: string | null;    // display 可直接渲染
-  status: string;                        // 见 Claim.status
+  status: string;                        // 见 Claim.status，另有 "unconfirmed"（无任何依据）
   precision: "date" | "datetime" | "range" | null;
   claims: Claim[];
 };
@@ -32,7 +32,7 @@ type Task = {
 };
 
 type EventBrief = {
-  id: string; title: string; state: "candidate" | "confirmed" | "ignored";
+  id: string; title: string; state: "candidate" | "confirmed" | "ignored" | "merged";  // 列表不含 merged；直接打开已合并事件 URL 时为 merged，文案「已并入其他事件」
   org: string | null; location: string | null;
   start_at: string | null; start_display: string | null;
   fields: Field[]; tasks: Task[];
@@ -72,7 +72,7 @@ type Candidate = EventBrief & {
 };
 
 type Merge = {
-  id: string; score: number; reasons: string[]; state: "pending";
+  id: string; score: number; reasons: string[]; state: "pending";   // score 为 0–5 的匹配分，不是百分比
   a: { id: string; title: string; start_display: string|null };
   b: { id: string; title: string; start_display: string|null };
   diff: { kind: "add"|"change"|"task"; field: string; label: string;
