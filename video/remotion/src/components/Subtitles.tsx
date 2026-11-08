@@ -32,7 +32,7 @@ export const Subtitles: React.FC = () => {
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 216,
+        bottom: 108,
         display: 'flex',
         justifyContent: 'center',
         pointerEvents: 'none',
