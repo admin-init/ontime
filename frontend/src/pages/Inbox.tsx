@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { confirmEvent, decideMerge, getInbox, type Candidate, type Merge } from '../api'
-import { Badge, EmptyState, ErrorBox, LoadingRow } from '../components/bits'
+import { Badge, EmptyState, ErrorBox, LoadingRow, SourceKindBadge } from '../components/bits'
 import { sourceKindText } from '../format'
 import { useLoad } from '../hooks'
 
@@ -26,6 +26,7 @@ function CandidateItem({
       <div className="candidate-main">
         <div className="item-title-row">
           <h3>{c.title}</h3>
+          <SourceKindBadge kind={c.source?.kind} />
           <Badge tone="accent">候选</Badge>
           {c.conflict_count > 0 && <Badge tone="warn">{c.conflict_count} 处冲突</Badge>}
         </div>

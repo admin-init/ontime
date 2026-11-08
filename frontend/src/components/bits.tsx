@@ -29,10 +29,25 @@ export function StatusMark({ status, label }: { status: string; label?: string }
   )
 }
 
-type Tone = 'neutral' | 'accent' | 'warn' | 'success' | 'muted'
+type Tone = 'neutral' | 'accent' | 'warn' | 'success' | 'muted' | 'danger'
 
 export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
   return <span className={`badge badge-${tone}`}>{children}</span>
+}
+
+const SOURCE_KIND_BADGE: Record<string, string> = {
+  web: '官网',
+  mail: '邮件',
+  screenshot: '截图',
+  text: '文字',
+  link: '链接',
+}
+
+/** 收件箱来源徽标：区分官网同步 / 邮件 / 截图 / 文字，沿用现有小徽标样式。 */
+export function SourceKindBadge({ kind }: { kind: string | null | undefined }) {
+  const label = kind ? SOURCE_KIND_BADGE[kind] : undefined
+  if (!label) return null
+  return <Badge tone="muted">{label}</Badge>
 }
 
 export function EmptyState({

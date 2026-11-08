@@ -57,6 +57,14 @@ const sourceText = {
   image_url: null,
   published_at: null,
 }
+const sourceMail = {
+  id: 'src_mail_c',
+  kind: 'mail',
+  title: '讲座邮件：大模型时代的科研范式',
+  url: null,
+  image_url: null,
+  published_at: null,
+}
 
 let seq = 0
 const cid = () => `clm_${++seq}`
@@ -357,7 +365,7 @@ const history = [
 
 let eventState = 'confirmed'
 let mergeState = 'pending'
-let candidates = ['evt_cand_1', 'evt_cand_2']
+let candidates = ['evt_cand_1', 'evt_cand_2', 'evt_cand_3', 'evt_cand_4']
 
 function eventView(detail = false) {
   const fields = mainFields.map(fieldView)
@@ -432,70 +440,145 @@ function eventView(detail = false) {
   }
 }
 
+const CAND_SPECS = {
+  evt_cand_1: {
+    title: '2026 年秋季校园招聘宣讲会',
+    summary: '学院邀请参加秋季招聘宣讲会，需在 11 月 10 日前提交报名表。',
+    question: '截图与官网通知的开始时间不一致，以哪个为准？',
+    start_at: '2026-11-12T14:00:00+08:00',
+    start_display: '11月12日 周四 14:00',
+    location: '教学楼 A301',
+    task_action: '提交报名表',
+    task_due_at: '2026-11-10T23:59:00+08:00',
+    task_due_display: '11月10日 周二 23:59',
+    materials: ['报名表'],
+    source: sourceShot,
+    source_title: sourceShot.title,
+    image_url: sourceShot.image_url,
+    quote: '秋季招聘宣讲会',
+    created_at: '2026-11-08T08:40:00+08:00',
+    conflict_count: 1,
+    pending_count: 1,
+  },
+  evt_cand_2: {
+    title: '实验室安全培训报名',
+    summary: '实验室安全培训开始报名，原文未写截止时间。',
+    question: '原文没有写报名截止时间，请补上。',
+    start_at: '2026-11-18T09:00:00+08:00',
+    start_display: '11月18日 周三 09:00',
+    location: '实验楼 B204',
+    task_action: '填写安全培训登记',
+    task_due_at: null,
+    task_due_display: null,
+    materials: [],
+    source: sourceText,
+    source_title: sourceText.title,
+    image_url: null,
+    quote: '实验室安全培训',
+    created_at: '2026-11-08T09:10:00+08:00',
+    conflict_count: 0,
+    pending_count: 1,
+  },
+  evt_cand_3: {
+    title: '关于举办 2026 年新生编程竞赛的通知',
+    summary: '官网新发布的竞赛通知：11 月 21 日比赛，11 月 15 日前组队报名。',
+    question: null,
+    start_at: '2026-11-21T09:00:00+08:00',
+    start_display: '11月21日 周六 09:00',
+    location: '计算中心机房',
+    task_action: '提交组队报名表',
+    task_due_at: '2026-11-15T17:00:00+08:00',
+    task_due_display: '11月15日 周日 17:00',
+    materials: ['组队表'],
+    source: sourceWeb,
+    source_title: sourceWeb.title,
+    image_url: null,
+    quote: '关于举办 2026 年新生编程竞赛的通知',
+    created_at: '2026-11-09T08:10:00+08:00',
+    conflict_count: 0,
+    pending_count: 0,
+  },
+  evt_cand_4: {
+    title: '讲座：大模型时代的科研范式',
+    summary: '邮件邀请参加 11 月 20 日下午的讲座，地点在图书馆报告厅。',
+    question: null,
+    start_at: '2026-11-20T14:00:00+08:00',
+    start_display: '11月20日 周五 14:00',
+    location: '图书馆报告厅',
+    task_action: '回复邮件确认参加',
+    task_due_at: '2026-11-12T18:00:00+08:00',
+    task_due_display: '11月12日 周四 18:00',
+    materials: [],
+    source: sourceMail,
+    source_title: sourceMail.title,
+    image_url: null,
+    quote: '诚邀参加 11 月 20 日「大模型时代的科研范式」讲座',
+    created_at: '2026-11-08T20:35:00+08:00',
+    conflict_count: 0,
+    pending_count: 0,
+  },
+}
+
 function candidateView(id) {
-  const first = id === 'evt_cand_1'
+  const s = CAND_SPECS[id] ?? CAND_SPECS.evt_cand_1
   const fields = [
     field('title', '标题', null, [
       claim({
-        value: first ? '2026 年秋季校园招聘宣讲会' : '实验室安全培训报名',
-        display: first ? '2026 年秋季校园招聘宣讲会' : '实验室安全培训报名',
-        quote: first ? '秋季招聘宣讲会' : '实验室安全培训',
-        source: first ? sourceShot : sourceText,
+        value: s.title,
+        display: s.title,
+        quote: s.quote,
+        source: s.source,
       }),
     ]),
     field('start_at', '活动时间', 'datetime', [
       claim({
-        value: { iso: first ? '2026-11-12T14:00:00+08:00' : '2026-11-18T09:00:00+08:00', precision: 'datetime' },
-        display: first ? '11月12日 周四 14:00' : '11月18日 周三 09:00',
-        quote: first ? '11 月 12 日（周四）下午 2 点' : '11 月 18 日上午 9 点',
-        source: first ? sourceShot : sourceText,
+        value: { iso: s.start_at, precision: 'datetime' },
+        display: s.start_display,
+        quote: s.quote,
+        source: s.source,
       }),
     ]),
     field('location', '地点', null, [
       claim({
-        value: first ? '教学楼 A301' : '实验楼 B204',
-        display: first ? '教学楼 A301' : '实验楼 B204',
-        quote: first ? '教学楼 A301' : '实验楼 B204',
-        source: first ? sourceShot : sourceText,
+        value: s.location,
+        display: s.location,
+        quote: s.location,
+        source: s.source,
       }),
     ]),
   ].map(fieldView)
   const task = {
-    id: first ? 'cand_task_1' : 'cand_task_2',
-    action: first ? '提交报名表' : '填写安全培训登记',
+    id: `cand_task_${id}`,
+    action: s.task_action,
     state: 'open',
-    due_at: first ? '2026-11-10T23:59:00+08:00' : null,
-    due_display: first ? '11月10日 周二 23:59' : null,
-    materials: first ? ['报名表'] : [],
+    due_at: s.task_due_at,
+    due_display: s.task_due_display,
+    materials: s.materials,
     submit_channel: null,
     fields: [],
   }
   return {
     id,
-    title: first ? '2026 年秋季校园招聘宣讲会' : '实验室安全培训报名',
+    title: s.title,
     state: 'candidate',
     org: '示例学院学生工作办公室',
-    location: first ? '教学楼 A301' : '实验楼 B204',
-    start_at: first ? '2026-11-12T14:00:00+08:00' : '2026-11-18T09:00:00+08:00',
-    start_display: first ? '11月12日 周四 14:00' : '11月18日 周三 09:00',
+    location: s.location,
+    start_at: s.start_at,
+    start_display: s.start_display,
     fields,
     tasks: [task],
     task_count: 1,
     open_task_count: 1,
-    conflict_count: first ? 1 : 0,
-    pending_count: first ? 1 : 0,
-    created_at: first ? '2026-11-08T08:40:00+08:00' : '2026-11-08T09:10:00+08:00',
-    summary: first
-      ? '学院邀请参加秋季招聘宣讲会，需在 11 月 10 日前提交报名表。'
-      : '实验室安全培训开始报名，原文未写截止时间。',
-    questions: first
-      ? ['截图与官网通知的开始时间不一致，以哪个为准？']
-      : ['原文没有写报名截止时间，请补上。'],
+    conflict_count: s.conflict_count,
+    pending_count: s.pending_count,
+    created_at: s.created_at,
+    summary: s.summary,
+    questions: s.question ? [s.question] : [],
     source: {
-      id: first ? sourceShot.id : sourceText.id,
-      kind: first ? 'screenshot' : 'text',
-      title: first ? sourceShot.title : sourceText.title,
-      image_url: first ? sourceShot.image_url : null,
+      id: s.source.id,
+      kind: s.source.kind,
+      title: s.source_title,
+      image_url: s.image_url,
     },
   }
 }
@@ -627,6 +710,17 @@ function jobView(job) {
       error: null,
     }
   }
+  // 官网同步 / IMAP 拉取等短任务：轮询 2 次后完成
+  if (job.type === 'sync') {
+    const done = job.polls >= 2
+    return {
+      id: job.id,
+      state: done ? 'done' : 'running',
+      stage: null,
+      result: done ? { found: 3, created: 1, changed: 0 } : null,
+      error: null,
+    }
+  }
   const done = job.polls >= 3
   return {
     id: job.id,
@@ -669,9 +763,11 @@ const server = http.createServer((req, res) => {
         { key: 'link', name: '跨来源关联与冲突提示', level: 'live', note: '提出合并建议，由你确认' },
         { key: 'verify', name: '联网核实', level: 'live', note: '真实检索并抓取原文' },
         { key: 'ics', name: '日历导出', level: 'live', note: '导出 .ics' },
-        { key: 'crawl', name: '官网定时抓取', level: 'entry', note: '演示暂未接入，仅保留入口' },
-        { key: 'imap', name: '邮箱自动连接与检索', level: 'entry', note: '演示暂未接入' },
-        { key: 'push', name: '多渠道推送与后台提醒', level: 'entry', note: '演示暂未接入' },
+        { key: 'crawl', name: '官网定时抓取', level: 'verified', note: '已实测：抓取你填写的公开列表页并逐篇读正文' },
+        { key: 'site', name: '自定义站点检索', level: 'verified', note: '已实测：只在你声明的站点域名内限定检索' },
+        { key: 'reminder', name: '到点提醒', level: 'verified', note: '已实测：按任务截止时间提前 2 小时提醒' },
+        { key: 'imap', name: '邮箱 IMAP 拉取', level: 'unverified', note: '已实现只读拉取；缺真实账号，尚未验证' },
+        { key: 'push', name: '多渠道推送', level: 'entry', note: '演示暂未接入，仅保留入口' },
       ],
     })
   }
@@ -831,6 +927,230 @@ const server = http.createServer((req, res) => {
     candidates = []
     mergeState = 'rejected'
     eventState = 'candidate'
+    return json(res, 200, { ok: true })
+  }
+
+  // ---------------------------------------------------------- 阶段一布局检查数据
+  // 以下都是写死的假数据，仅用于无后端时检查布局，不代表真实同步/连接结果。
+
+  const fromNow = (ms) => new Date(Date.now() + ms).toISOString()
+  const MIN = 60 * 1000
+  const HOUR = 60 * MIN
+
+  const watchTargets = [
+    {
+      id: 'wt_1',
+      name: '计算机学院 · 通知公告',
+      url: 'https://cs.example.edu.cn/notice.htm',
+      selector: null,
+      cron: '0 8 * * *',
+      enabled: true,
+      last_run_at: fromNow(-35 * MIN),
+      last_error: null,
+      last_status: 'ok',
+      source_count: 12,
+    },
+    {
+      id: 'wt_2',
+      name: '研究生院 · 学术活动',
+      url: 'https://gs.example.edu.cn/activity.htm',
+      selector: '.news-list li',
+      cron: '0 8,18 * * *',
+      enabled: true,
+      last_run_at: fromNow(-2 * HOUR),
+      last_error: '2 篇文章抓取失败：连接超时（activity/1027、activity/1028），已保留其余内容',
+      last_status: 'partial',
+      source_count: 5,
+    },
+    {
+      id: 'wt_3',
+      name: '就业指导中心 · 招聘信息',
+      url: 'https://career.example.edu.cn/jobs.htm',
+      selector: null,
+      cron: null,
+      enabled: false,
+      last_run_at: null,
+      last_error: null,
+      last_status: 'never',
+      source_count: 0,
+    },
+  ]
+
+  const sites = [
+    {
+      id: 'site_1',
+      name: '校图书馆活动',
+      domain: 'lib.example.edu.cn',
+      list_url: 'https://lib.example.edu.cn/activity.htm',
+      search_url: 'https://lib.example.edu.cn/search?q={q}',
+      enabled: true,
+      created_at: fromNow(-3 * 24 * HOUR),
+    },
+  ]
+
+  const mailImports = [
+    {
+      source_id: 'src_mail_1',
+      subject: '关于 11 月 14 日田径运动会报名的通知',
+      from: '体育部 <tyb@example.edu.cn>',
+      date: fromNow(-26 * HOUR),
+      job_state: 'done',
+    },
+    {
+      source_id: 'src_mail_2',
+      subject: '讲座：大模型时代的科研范式（11 月 20 日）',
+      from: '研究生院 <gs@example.edu.cn>',
+      date: fromNow(-2 * 24 * HOUR),
+      job_state: 'running',
+    },
+    {
+      source_id: 'src_mail_3',
+      subject: '转发：食堂营业时间调整',
+      from: '后勤处 <hqc@example.edu.cn>',
+      date: fromNow(-3 * 24 * HOUR),
+      job_state: 'failed',
+    },
+  ]
+
+  // fire_at 相对当前时间生成，便于检查「已到点 / 未到点」两种状态
+  let reminders = [
+    { id: 'rem_1', task_id: 'task_1', event_id: 'evt_main', title: '提交宣讲会报名表', fire_at: fromNow(-10 * MIN), state: 'scheduled' },
+    { id: 'rem_2', task_id: 'task_2', event_id: 'evt_main', title: '完成线上安全测试', fire_at: fromNow(90 * MIN), state: 'scheduled' },
+    { id: 'rem_3', task_id: 'task_4', event_id: 'evt_main', title: '参加宣讲会', fire_at: fromNow(24 * HOUR), state: 'scheduled' },
+  ]
+
+  if (path === '/api/watch-targets' && method === 'GET') {
+    return json(res, 200, { items: watchTargets })
+  }
+  if (path === '/api/watch-targets' && method === 'POST') {
+    let body = ''
+    req.on('data', (c) => (body += c))
+    req.on('end', () => {
+      const b = JSON.parse(body || '{}')
+      const t = {
+        id: `wt_${Date.now()}`,
+        name: b.name ?? '未命名栏目',
+        url: b.url ?? '',
+        selector: b.selector ?? null,
+        cron: b.cron ?? null,
+        enabled: true,
+        last_run_at: null,
+        last_error: null,
+        last_status: 'never',
+        source_count: 0,
+      }
+      watchTargets.push(t)
+      json(res, 200, t)
+    })
+    return
+  }
+  const wtMatch = path.match(/^\/api\/watch-targets\/([^/]+)$/)
+  if (wtMatch && (method === 'PATCH' || method === 'DELETE')) {
+    const t = watchTargets.find((x) => x.id === wtMatch[1])
+    if (!t) return json(res, 404, { detail: '栏目不存在' })
+    if (method === 'DELETE') {
+      watchTargets.splice(watchTargets.indexOf(t), 1)
+      return json(res, 200, { ok: true })
+    }
+    let body = ''
+    req.on('data', (c) => (body += c))
+    req.on('end', () => {
+      const b = JSON.parse(body || '{}')
+      if (typeof b.enabled === 'boolean') t.enabled = b.enabled
+      if (typeof b.name === 'string') t.name = b.name
+      if (b.cron !== undefined) t.cron = b.cron
+      json(res, 200, t)
+    })
+    return
+  }
+  const wtSyncMatch = path.match(/^\/api\/watch-targets\/([^/]+)\/sync$/)
+  if (wtSyncMatch && method === 'POST') {
+    const job = { id: `job_sync_${Date.now()}`, type: 'sync', polls: 0 }
+    jobs.set(job.id, job)
+    return json(res, 200, { job_id: job.id })
+  }
+  if (path === '/api/sync-runs' && method === 'GET') {
+    return json(res, 200, {
+      items: [
+        {
+          id: 'run_1',
+          target_id: 'wt_1',
+          started_at: fromNow(-35 * MIN),
+          finished_at: fromNow(-34 * MIN),
+          status: 'ok',
+          found: 3,
+          created: 1,
+          changed: 0,
+          error: null,
+        },
+      ],
+    })
+  }
+
+  if (path === '/api/sites' && method === 'GET') {
+    return json(res, 200, { items: sites })
+  }
+  if (path === '/api/sites' && method === 'POST') {
+    let body = ''
+    req.on('data', (c) => (body += c))
+    req.on('end', () => {
+      const b = JSON.parse(body || '{}')
+      const s = {
+        id: `site_${Date.now()}`,
+        name: b.name ?? '未命名站点',
+        domain: b.domain ?? '',
+        list_url: b.list_url ?? null,
+        search_url: b.search_url ?? null,
+        enabled: true,
+        created_at: fromNow(0),
+      }
+      sites.push(s)
+      json(res, 200, s)
+    })
+    return
+  }
+  const siteMatch = path.match(/^\/api\/sites\/([^/]+)$/)
+  if (siteMatch && method === 'DELETE') {
+    const i = sites.findIndex((x) => x.id === siteMatch[1])
+    if (i >= 0) sites.splice(i, 1)
+    return json(res, 200, { ok: true })
+  }
+
+  if (path === '/api/mail/import' && method === 'POST') {
+    // 忽略 multipart 内容，只回契约形状
+    req.on('data', () => {})
+    req.on('end', () => {
+      json(res, 200, { job_ids: [`job_mail_${Date.now()}`], source_ids: [`src_mail_${Date.now()}`] })
+    })
+    return
+  }
+  if (path === '/api/mail/imports' && method === 'GET') {
+    return json(res, 200, { items: mailImports })
+  }
+  if (path === '/api/mail/imap/test' && method === 'POST') {
+    // 布局服务没有真实邮箱，永远返回失败；真实环境才会返回连接结果
+    req.resume()
+    return json(res, 200, { ok: false, message: '布局检查服务没有真实邮箱可连，不代表后端能力' })
+  }
+  if (path === '/api/mail/imap/sync' && method === 'POST') {
+    const job = { id: `job_imap_${Date.now()}`, type: 'sync', polls: 0 }
+    jobs.set(job.id, job)
+    return json(res, 200, { job_id: job.id })
+  }
+  if (path === '/api/mail/imap/status' && method === 'GET') {
+    return json(res, 200, { configured: false, verified: false, last_sync_at: null, error: null })
+  }
+
+  if (path === '/api/reminders' && method === 'GET') {
+    return json(res, 200, { items: reminders.filter((r) => r.state !== 'dismissed') })
+  }
+  if (path === '/api/reminders/sync' && method === 'POST') {
+    return json(res, 200, { created: 0 })
+  }
+  const remMatch = path.match(/^\/api\/reminders\/([^/]+)\/dismiss$/)
+  if (remMatch && method === 'POST') {
+    const r = reminders.find((x) => x.id === remMatch[1])
+    if (r) r.state = 'dismissed'
     return json(res, 200, { ok: true })
   }
 
