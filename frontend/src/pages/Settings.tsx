@@ -1,7 +1,17 @@
 import { useState } from 'react'
-import { getCapabilities, resetDemo } from '../api'
+import { getCapabilities, resetDemo, type CapabilityLevel } from '../api'
 import { Badge, ErrorBox, LoadingRow } from '../components/bits'
 import { useLoad } from '../hooks'
+import MailSection from './settings/MailSection'
+import SitesSection from './settings/SitesSection'
+import WatchTargetsSection from './settings/WatchTargetsSection'
+
+const LEVEL_VIEW: Record<CapabilityLevel, { label: string; kind: 'live' | 'warn' | 'muted' }> = {
+  verified: { label: '已实现 · 已实测', kind: 'live' },
+  live: { label: '已实现', kind: 'live' },
+  unverified: { label: '已实现 · 未验证', kind: 'warn' },
+  entry: { label: '演示暂未接入', kind: 'muted' },
+}
 
 export default function Settings() {
   const { data, error, loading, refresh } = useLoad(() => getCapabilities())
@@ -28,42 +38,50 @@ export default function Settings() {
         <div>
           <h1>设置</h1>
           <div className="page-sub">
-            能力边界、演示数据与隐私说明。已接入的标「已实现」，没接入的明确写「演示暂未接入」。
+            来源管理：官网栏目、邮箱与自定义站点；能力边界、演示数据与隐私说明也在这里。
           </div>
         </div>
       </div>
 
-      {error && <ErrorBox onRetry={() => void refresh()}>{error}</ErrorBox>}
-      {loading && <LoadingRow />}
+      <WatchTargetsSection />
+      <MailSection />
+      <SitesSection />
 
-      {data && (
-        <section className="section">
-          <div className="section-head">
-            <h2>能力矩阵</h2>
-            <span className="meta section-hint">与后端声明的能力边界一致</span>
-          </div>
+      <section className="section">
+        <div className="section-head">
+          <h2>能力矩阵</h2>
+          <span className="meta section-hint">与后端声明的能力边界一致</span>
+        </div>
+        {error && <ErrorBox onRetry={() => void refresh()}>{error}</ErrorBox>}
+        {loading && <LoadingRow />}
+        {data && (
           <ul className="cap-list">
-            {data.items.map((it) => (
-              <li key={it.key} className="cap-item">
-                <div className="cap-main">
-                  <div className="cap-name">{it.name}</div>
-                  <div className="cap-note">{it.note}</div>
-                </div>
-                <div className="cap-state">
-                  {it.level === 'live' ? (
-                    <span className="live-state">
-                      <span className="live-dot" aria-hidden />
-                      已实现
-                    </span>
-                  ) : (
-                    <Badge tone="warn">演示暂未接入</Badge>
-                  )}
-                </div>
-              </li>
-            ))}
+            {data.items.map((it) => {
+              const view = LEVEL_VIEW[it.level] ?? LEVEL_VIEW.entry
+              return (
+                <li key={it.key} className="cap-item">
+                  <div className="cap-main">
+                    <div className="cap-name">{it.name}</div>
+                    <div className="cap-note">{it.note}</div>
+                  </div>
+                  <div className="cap-state">
+                    {view.kind === 'live' ? (
+                      <span className="live-state">
+                        <span className="live-dot" aria-hidden />
+                        {view.label}
+                      </span>
+                    ) : view.kind === 'warn' ? (
+                      <Badge tone="warn">{view.label}</Badge>
+                    ) : (
+                      <Badge tone="muted">{view.label}</Badge>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
 
       <section className="section">
         <div className="section-head">
@@ -75,8 +93,15 @@ export default function Settings() {
           </li>
           <li>识别出的文字与你粘贴的正文，会发送给云端语言模型，用于整理事件、截止时间与材料字段。</li>
           <li>数据保存在本机的 SQLite 数据库；原图与原文件只存在本机 storage/ 目录，不进入代码仓库。</li>
-          <li>当前演示使用「云端视觉模型直读」模式：图片会离开本机；本地 OCR 模式未启用。</li>
-          <li>邮箱自动连接、官网定时抓取等后台能力演示暂未接入，相关入口只作展示，不代表已连接。</li>
+          <li>
+            <b>官网栏目</b>只抓取你填写的公开列表页；<b>自定义站点</b>只在你声明的域名内检索，不登录、不绕过访问限制。
+          </li>
+          <li>
+            <b>邮箱</b>：IMAP 为只读拉取（BODY.PEEK），不标已读、不删信、不发信；授权码只保存在本机后端（~/.ontime/imap.json），页面不显示也不保存。
+          </li>
+          <li>
+            <b>提醒</b>：到点前用浏览器通知弹出；未授权或通知失败时只在站内显示，不会发送任何站外消息。
+          </li>
         </ol>
       </section>
 

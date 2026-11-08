@@ -1921,6 +1921,278 @@ textarea {
   font-size: 13px;
 }
 
+/* ---------- 阶段一：来源管理 / 邮件 / 提醒 ---------- */
+
+.badge-danger {
+  background: var(--danger-soft);
+  border-color: #e5c4bd;
+  color: var(--danger);
+}
+
+.src-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.src-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: start;
+  margin: 0 -8px;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  transition: background-color 0.15s ease;
+}
+
+.src-item:first-child {
+  border-top: 1px solid var(--line-soft);
+}
+
+.src-item:hover {
+  background: var(--surface);
+}
+
+.src-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.src-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.src-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.src-domain {
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.src-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 4px 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.src-url {
+  color: var(--ink-2);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.src-error {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--danger);
+}
+
+.src-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 2px;
+  flex: none;
+}
+
+.src-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.src-toggle input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.text-btn.is-danger {
+  color: var(--danger);
+}
+
+.text-btn.is-danger:hover:not(:disabled) {
+  color: #7f3b2a;
+}
+
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.add-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drop-sm {
+  margin-top: 8px;
+  padding: 26px 20px;
+  border-radius: 12px;
+}
+
+.drop-sm .drop-title {
+  font-size: 14px;
+}
+
+.import-ok {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--brand);
+}
+
+.imap-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.imap-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.imap-result {
+  padding: 8px 12px;
+  border-left: 2px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.imap-result.is-ok {
+  border-left-color: var(--supported);
+  color: var(--brand);
+}
+
+.imap-result.is-fail {
+  border-left-color: var(--conflict);
+  color: var(--danger);
+}
+
+/* 提醒 */
+
+.remind-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remind-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 -8px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  transition: background-color 0.15s ease;
+}
+
+.remind-row:hover {
+  background: var(--surface);
+}
+
+.remind-dot {
+  width: 6px;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 50%;
+  background: var(--pending);
+  flex: none;
+}
+
+.remind-dot.is-due {
+  background: var(--conflict);
+}
+
+.remind-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.remind-title {
+  font-size: 14px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.remind-when {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.remind-when.is-due {
+  color: var(--conflict);
+}
+
+.remind-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.remind-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 13px;
+}
+
 /* ============================================================
    窄屏
    ============================================================ */
@@ -2055,6 +2327,25 @@ textarea {
 
   .task-detail {
     padding-left: 16px;
+  }
+
+  .form-foot {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .add-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .src-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .src-actions {
+    padding-left: 8px;
+    flex-wrap: wrap;
   }
 
   .history-list li {

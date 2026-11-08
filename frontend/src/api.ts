@@ -1,5 +1,6 @@
 // ------------------------------------------------------------------
-// 唯一请求封装。类型按 docs/API契约_v1.md（冻结）手写，字段以契约为准。
+// 唯一请求封装。类型按 docs/API契约_v1.md（冻结）与 docs/API契约_v1.1_阶段一.md
+// 手写，字段以契约为准。
 // ------------------------------------------------------------------
 
 export type ClaimStatus =
@@ -184,7 +185,10 @@ export type VerifyResult = {
   mode?: 'url'
 }
 
-export type Capability = { key: string; name: string; level: 'live' | 'entry'; note: string }
+/** 契约 v1.1：level 增加 verified（已实现且实测）/ unverified（已实现但缺条件验证） */
+export type CapabilityLevel = 'verified' | 'live' | 'unverified' | 'entry'
+
+export type Capability = { key: string; name: string; level: CapabilityLevel; note: string }
 
 // ------------------------------------------------------------------
 // 请求
@@ -333,4 +337,173 @@ export function resetDemo() {
 /** 导出日历：契约返回 text/calendar 文件流，直接用链接下载。 */
 export function icsUrl(id: string) {
   return `/api/events/${encodeURIComponent(id)}/ics`
+}
+
+// ------------------------------------------------------------------
+// 阶段一（契约 v1.1）：官网同步 / 自定义站点 / 邮件 / 提醒
+// ------------------------------------------------------------------
+
+export type WatchStatus = 'never' | 'ok' | 'partial' | 'failed'
+
+export type WatchTarget = {
+  id: string
+  name: string
+  url: string
+  selector: string | null
+  cron: string | null
+  enabled: boolean
+  last_run_at: string | null
+  last_error: string | null
+  last_status: WatchStatus
+  source_count: number
+}
+
+export type SyncRun = {
+  id: string
+  target_id: string
+  started_at: string
+  finished_at: string | null
+  status: 'running' | 'ok' | 'partial' | 'failed'
+  found: number
+  created: number
+  changed: number
+  error: string | null
+}
+
+export type Site = {
+  id: string
+  name: string
+  domain: string
+  list_url: string | null
+  search_url: string | null
+  enabled: boolean
+  created_at: string
+}
+
+export type MailImport = {
+  source_id: string
+  subject: string | null
+  from: string | null
+  date: string | null
+  job_state: string
+}
+
+export type ImapStatus = {
+  configured: boolean
+  verified: boolean
+  last_sync_at: string | null
+  error: string | null
+}
+
+export type Reminder = {
+  id: string
+  task_id: string
+  event_id: string | null
+  title: string
+  fire_at: string
+  state: 'scheduled' | 'sent' | 'dismissed'
+}
+
+export function getWatchTargets() {
+  return request<{ items: WatchTarget[] }>('/api/watch-targets')
+}
+
+export function createWatchTarget(body: { name: string; url: string; selector?: string; cron?: string }) {
+  return request<WatchTarget>('/api/watch-targets', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+}
+
+export function patchWatchTarget(id: string, body: { name?: string; enabled?: boolean; cron?: string | null }) {
+  return request<WatchTarget>(`/api/watch-targets/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+}
+
+export function deleteWatchTarget(id: string) {
+  return request<{ ok: boolean }>(`/api/watch-targets/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+export function syncWatchTarget(id: string) {
+  return request<{ job_id: string }>(`/api/watch-targets/${encodeURIComponent(id)}/sync`, { method: 'POST' })
+}
+
+export function getSyncRuns(targetId?: string, limit = 20) {
+  const qs = new URLSearchParams({ limit: String(limit) })
+  if (targetId) qs.set('target_id', targetId)
+  return request<{ items: SyncRun[] }>(`/api/sync-runs?${qs.toString()}`)
+}
+
+export function getSites() {
+  return request<{ items: Site[] }>('/api/sites')
+}
+
+export function createSite(body: { name: string; domain: string; list_url?: string; search_url?: string }) {
+  return request<Site>('/api/sites', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+}
+
+export function deleteSite(id: string) {
+  return request<{ ok: boolean }>(`/api/sites/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
+/** 导入 .eml / .mbox：multipart 字段名 file，返回逐封邮件的处理 job。 */
+export function importMail(file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return request<{ job_ids: string[]; source_ids: string[] }>('/api/mail/import', {
+    method: 'POST',
+    body: form,
+  })
+}
+
+export function getMailImports() {
+  return request<{ items: MailImport[] }>('/api/mail/imports')
+}
+
+export function testImap(body: { host: string; port: number; username: string; password: string }) {
+  return request<{ ok: boolean; message: string }>('/api/mail/imap/test', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+}
+
+export function syncImap(body: {
+  host: string
+  port: number
+  username: string
+  password: string
+  since_days?: number
+  query?: string
+}) {
+  return request<{ job_id: string }>('/api/mail/imap/sync', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+}
+
+export function getImapStatus() {
+  return request<ImapStatus>('/api/mail/imap/status')
+}
+
+export function getReminders() {
+  return request<{ items: Reminder[] }>('/api/reminders')
+}
+
+/** 按 open 任务的 due_at 生成提醒（默认提前 2 小时），后端去重。 */
+export function syncReminders() {
+  return request<{ created: number }>('/api/reminders/sync', { method: 'POST' })
+}
+
+export function dismissReminder(id: string) {
+  return request<{ ok: boolean }>(`/api/reminders/${encodeURIComponent(id)}/dismiss`, { method: 'POST' })
 }
