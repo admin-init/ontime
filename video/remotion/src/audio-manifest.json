@@ -1,13 +1,13 @@
 {
   "bgm": {
-    "file": "audio/bgm-main.mp3",
+    "file": "audio/bgm-v3.mp3",
     "exists": true,
     "inPoint": 12,
-    "sourceIn": 9,
+    "sourceIn": 0,
     "volume": 0.3,
     "fadeIn": 0.5,
     "fadeOut": 2,
-    "trackDuration": 114.024
+    "trackDuration": 131.5
   },
   "sfx": [
     {

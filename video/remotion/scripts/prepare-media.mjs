@@ -39,6 +39,14 @@ const CLIPS = [
   {id: '08-findings', src: '08-link-verify-apply-export.mp4', start: 14.3, end: 17.8, rate: 1.0},
   {id: '09-action', src: '09-action-final.mp4', start: 0.2, end: 4.0, rate: 0.92},
   {id: '09-history', src: '09-action-final.mp4', start: 6.4, end: 7.8, rate: 0.54},
+  {id: 'ms-sync', src: '../_multisource/ms-sync.mp4', start: 3.2, end: 7.8, rate: 1.0},
+  {id: 'ms-email-start', src: '../_multisource/ms-email2-start.mp4', start: 2.6, end: 4.6, rate: 1.0},
+  {id: 'ms-email-done', src: '../_multisource/ms-email2-done.mp4', start: 3.1, end: 5.0, rate: 1.0},
+  {id: 'ms-inbox', src: '../_multisource/ms-inbox2.mp4', start: 2.6, end: 5.4, rate: 1.0},
+  {id: 'ms-reminder', src: '../_multisource/ms-reminder2.mp4', start: 3.4, end: 6.0, rate: 1.0},
+  {id: 'ms-agent-form', src: '../_multisource/ms-agent3.mp4', start: 2.8, end: 5.0, rate: 2.0},
+  {id: 'ms-agent-result', src: '../_multisource/ms-agent3.mp4', start: 14.6, end: 21.9, rate: 1.15},
+  {id: 'ms-capability', src: '../_multisource/ms-capability.mp4', start: 3.7, end: 7.15, rate: 1.0},
 ];
 
 const STILLS = [

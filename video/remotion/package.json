@@ -8,8 +8,8 @@
     "prepare-audio": "node scripts/prepare-audio.mjs",
     "captions": "node scripts/build-srt.mjs",
     "dev": "remotion studio",
-    "render": "npm run prepare-audio && remotion render Promo105 ../out/promo-105s-v2.mp4 --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4",
-    "render:nosubs": "npm run prepare-audio && remotion render Promo105-NoSubs ../out/promo-105s-v2-nosubs.mp4 --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4",
+    "render": "npm run prepare-audio && remotion render Promo105 ../out/promo-v3.mp4 --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4",
+    "render:nosubs": "npm run prepare-audio && remotion render Promo105-NoSubs ../out/promo-v3-nosubs.mp4 --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4",
     "still": "remotion still Promo105 ../out/preview.png --frame=3000"
   },
   "dependencies": {

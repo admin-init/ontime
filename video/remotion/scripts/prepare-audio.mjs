@@ -7,6 +7,7 @@
  *   ../assets/sfx/whoosh-transition.mp3
  */
 import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -32,16 +33,43 @@ const copyIfPresent = (src, name) => {
 const bgmExists = copyIfPresent(bgmSrc, 'bgm-main.mp3');
 const whooshExists = copyIfPresent(whooshSrc, 'whoosh-transition.mp3');
 
+// v3 is 129.35s+ and needs a 117s BGM bed from 0:12. Build a 131.5s bed:
+// original 0:09-1:54 (105s) + original 0:00-0:27 (27s), 0.5s crossfade.
+const bgmV3 = path.join(PUBLIC_AUDIO, 'bgm-v3.mp3');
+let bgmV3Exists = false;
+if (bgmExists) {
+  try {
+    execFileSync(
+      'ffmpeg',
+      [
+        '-y',
+        '-i', bgmSrc,
+        '-filter_complex',
+        '[0:a]atrim=start=9:end=114,asetpts=PTS-STARTPTS[a];' +
+          '[0:a]atrim=start=0:end=27,asetpts=PTS-STARTPTS[b];' +
+          '[a][b]acrossfade=d=0.5:c1=tri:c2=tri[out]',
+        '-map', '[out]',
+        '-c:a', 'libmp3lame', '-q:a', '2',
+        bgmV3,
+      ],
+      {stdio: 'ignore'},
+    );
+    bgmV3Exists = fs.existsSync(bgmV3);
+  } catch (e) {
+    console.warn('bgm-v3 build failed, falling back to bgm-main.mp3');
+  }
+}
+
 const manifest = {
   bgm: {
-    file: 'audio/bgm-main.mp3',
-    exists: bgmExists,
+    file: bgmV3Exists ? 'audio/bgm-v3.mp3' : 'audio/bgm-main.mp3',
+    exists: bgmV3Exists || bgmExists,
     inPoint: 12,
-    sourceIn: 9,
+    sourceIn: bgmV3Exists ? 0 : 9,
     volume: 0.3,
     fadeIn: 0.5,
     fadeOut: 2,
-    trackDuration: 114.024,
+    trackDuration: bgmV3Exists ? 131.5 : 114.024,
   },
   sfx: [
     {
@@ -80,5 +108,6 @@ fs.writeFileSync(
 );
 
 console.log(`bgm-main.mp3     ${bgmExists ? 'found' : 'missing'}`);
+console.log(`bgm-v3.mp3       ${bgmV3Exists ? 'built' : 'not built'}`);
 console.log(`whoosh-transition ${whooshExists ? 'found' : 'missing'}`);
 console.log('audio manifest written to src/audio-manifest.json');

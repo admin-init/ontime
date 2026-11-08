@@ -9,6 +9,7 @@ import {Concept} from './scenes/Concept';
 import {DualValue} from './scenes/DualValue';
 import {EndCard} from './scenes/EndCard';
 import {ExportCard} from './scenes/ExportCard';
+import {LimitsCard} from './scenes/LimitsCard';
 import {Opening} from './scenes/Opening';
 import {Statement} from './scenes/Statement';
 import {Thesis1, Thesis2} from './scenes/Thesis';
@@ -35,6 +36,8 @@ const ShotBody: React.FC<{shot: (typeof SHOTS)[number]}> = ({shot}) => {
       return <Statement variant={shot.variant} />;
     case 'export':
       return <ExportCard />;
+    case 'limits':
+      return <LimitsCard />;
     case 'concept':
       return <Concept />;
     case 'end':

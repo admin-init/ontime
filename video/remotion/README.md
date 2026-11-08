@@ -1,8 +1,8 @@
-# 到点 · 108 秒宣传片（Remotion）
+# 到点 · 130 秒宣传片（Remotion v3）
 
 版本：v1 草稿｜2026-11-08｜分支 `feat/video`
 
-成片：`video/out/promo-105s-v2.mp4`（1920×1080 / 30fps / 3240 帧 / 108.0s / H.264 + AAC）
+成片：`video/out/promo-v3.mp4`（1920×1080 / 30fps / 3911 帧 / 130.4s / H.264 + AAC）
 字幕：`video/subtitles/promo.zh.srt`（29 条，UTF-8 无 BOM，同时烧进画面）
 素材：只使用 `recordings/_trial/` 的试片与 `fixtures/demo/unnc_*.png`，没有重新录制，没有改 `frontend/` 或 `backend/`。
 
@@ -31,11 +31,11 @@ npm run captions
 
 # 3) 渲染带字幕版
 npm run render
-# 输出：video/out/promo-105s-v2.mp4
+# 输出：video/out/promo-v3.mp4
 
 # 无字幕版（同一个时间线，showSubtitles=false）
 npm run render:nosubs
-# 输出：video/out/promo-105s-v2-nosubs.mp4
+# 输出：video/out/promo-v3-nosubs.mp4
 
 # 预览单帧
 npm run still
@@ -45,17 +45,17 @@ npm run still
 
 ```powershell
 npm run prepare-audio
-npx remotion render Promo105 ../out/promo-105s-v2.mp4 `
+npx remotion render Promo105 ../out/promo-v3.mp4 `
   --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4
 ```
 
-参数：1920×1080、30fps、3240 帧、H.264 / yuv420p、CRF 20、AAC 音轨。v2 约 27 MB；`promo-105s-v1.mp4` 是上一版 105s 有声版，`promo-105s-silent.mp4` 是无声版。
+参数：1920×1080、30fps、3911 帧、H.264 / yuv420p、CRF 20、AAC 音轨。v3 约 35 MB；v2/v1/silent 版本保留在 `video/out/`。
 
 ## 3. 声音
 
 主片用 `video/assets/bgm/bgm-main.mp3`（Kevin MacLeod《Continue Life》，CC BY 4.0，114.024s，-20 LUFS）。`bgm-alt.mp3` 备用，本轮未用。
 
-- BGM 在片子 **0:12** 进（标题卡 0–3s + 痛点段留白），读取音轨 0:09；0.5s 淡入、最后 2s 淡出、音量 0.30。
+- BGM 在片子 **0:12** 进（标题卡 0–3s + 痛点段留白）；v3 用 `bgm-v3.mp3`（原曲 0:09–1:54 105s + 前 27s，0.5s 交叉淡化，131.5s 床），0.5s 淡入、最后 2s 淡出、音量 0.30。
 - `whoosh-transition.mp3` 用在 **21s / 43s / 65s** 三个关键转场，音量 0.12，提前 1.1s 起，峰值落在切点上。
 - `npm run prepare-audio` 会把音频复制到 `public/audio/` 并写 `src/audio-manifest.json`；`npm run render` 会自动先跑它。
 - 片尾能力声明下方已加署名：`Music: "Continue Life" — Kevin MacLeod (incompetech.com), CC BY 4.0`。
@@ -90,7 +90,7 @@ video/remotion/
 
 ## 5. 素材映射
 
-v2 在片头加 3s 标题卡，下表时间整体 +3s；镜头/倍率不变。变速切片由 `prepare-media.mjs` 用 ffmpeg 预切，Remotion 里按 1× 播放，保证帧数与 shot 时长一致；最后一帧 PNG 作为兜底，避免片段比 shot 短时黑帧。
+v3 在 96.2–98 后插入 98–119.35s 多来源段；下表是 v2 素材映射，v3 的完整时间见 CUT-v1.md。变速切片由 `prepare-media.mjs` 用 ffmpeg 预切，Remotion 里按 1× 播放，保证帧数与 shot 时长一致；最后一帧 PNG 作为兜底，避免片段比 shot 短时黑帧。
 
 | 镜头 ID | 成片时间 | 素材 | 源入–出 | 倍率 | 片段时长 | 用途 |
 |---|---|---|---|---|---|---|
@@ -122,7 +122,7 @@ v2 在片头加 3s 标题卡，下表时间整体 +3s；镜头/倍率不变。�
 - UI 素材框：1500×937.5，居中（左边距 210，上边距 44），细边框 + 阴影；推近在框内裁切。
 - 推近：`scale + translate`，`Easing.bezier(0.33, 0, 0.2, 1)`，倍率 1.35–1.75；没有花哨转场。
 - 标注：1.15px 细线框（随缩放反算，屏幕上恒为 1px）+ 13px 说明；上下左右四个方向，优先放在内容列外侧，避免压字。
-- 字幕：30px、行高 1.35、深色 80% 底、圆角 8、底部 108px（画面高度 10%）；`Promo105-NoSubs` 可关闭。
+- 字幕：30px、行高 1.35、深色 80% 底、圆角 8、底部 108px（画面高度 10%），34 条；`Promo105-NoSubs` 可关闭。
 - 顶栏：左「到点 / 镜头名」，右「真实耗时或说明 + 实机/入口/规划/真实文件标签」。标签是编辑信息，不属于 App UI。
 
 ## 7. 已知边界（片子里已如实处理）
@@ -145,8 +145,8 @@ npx tsc --noEmit
 # 校验成片
 ffprobe -v error -show_entries format=duration,size `
   -show_entries stream=width,height,r_frame_rate,nb_frames `
-  -of default=noprint_wrappers=1 ..\out\promo-105s-v2.mp4
-# 期望：1920x1080 / 30fps / 3240 帧 / 108.000s
+  -of default=noprint_wrappers=1 ..\out\promo-v3.mp4
+# 期望：1920x1080 / 30fps / 3911 帧 / 130.368s
 ```
 
 `video/out/`、`video/remotion/public/media/`、`node_modules/` 都已忽略；仓库只提交工程、脚本、字幕与说明。

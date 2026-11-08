@@ -128,5 +128,85 @@
     "file": "media/clips/09-history.mp4",
     "lastFrame": "media/clips/09-history-last.png",
     "duration": 2.6
+  },
+  {
+    "id": "ms-sync",
+    "source": "../_multisource/ms-sync.mp4",
+    "sourceStart": 3.2,
+    "sourceEnd": 7.8,
+    "rate": 1,
+    "file": "media/clips/ms-sync.mp4",
+    "lastFrame": "media/clips/ms-sync-last.png",
+    "duration": 4.6
+  },
+  {
+    "id": "ms-email-start",
+    "source": "../_multisource/ms-email2-start.mp4",
+    "sourceStart": 2.6,
+    "sourceEnd": 4.6,
+    "rate": 1,
+    "file": "media/clips/ms-email-start.mp4",
+    "lastFrame": "media/clips/ms-email-start-last.png",
+    "duration": 2
+  },
+  {
+    "id": "ms-email-done",
+    "source": "../_multisource/ms-email2-done.mp4",
+    "sourceStart": 3.1,
+    "sourceEnd": 5,
+    "rate": 1,
+    "file": "media/clips/ms-email-done.mp4",
+    "lastFrame": "media/clips/ms-email-done-last.png",
+    "duration": 1.9
+  },
+  {
+    "id": "ms-inbox",
+    "source": "../_multisource/ms-inbox2.mp4",
+    "sourceStart": 2.6,
+    "sourceEnd": 5.4,
+    "rate": 1,
+    "file": "media/clips/ms-inbox.mp4",
+    "lastFrame": "media/clips/ms-inbox-last.png",
+    "duration": 2.8
+  },
+  {
+    "id": "ms-reminder",
+    "source": "../_multisource/ms-reminder2.mp4",
+    "sourceStart": 3.4,
+    "sourceEnd": 6,
+    "rate": 1,
+    "file": "media/clips/ms-reminder.mp4",
+    "lastFrame": "media/clips/ms-reminder-last.png",
+    "duration": 2.6
+  },
+  {
+    "id": "ms-agent-form",
+    "source": "../_multisource/ms-agent3.mp4",
+    "sourceStart": 2.8,
+    "sourceEnd": 5,
+    "rate": 2,
+    "file": "media/clips/ms-agent-form.mp4",
+    "lastFrame": "media/clips/ms-agent-form-last.png",
+    "duration": 1.1
+  },
+  {
+    "id": "ms-agent-result",
+    "source": "../_multisource/ms-agent3.mp4",
+    "sourceStart": 14.6,
+    "sourceEnd": 21.9,
+    "rate": 1.15,
+    "file": "media/clips/ms-agent-result.mp4",
+    "lastFrame": "media/clips/ms-agent-result-last.png",
+    "duration": 6.333
+  },
+  {
+    "id": "ms-capability",
+    "source": "../_multisource/ms-capability.mp4",
+    "sourceStart": 3.7,
+    "sourceEnd": 7.15,
+    "rate": 1,
+    "file": "media/clips/ms-capability.mp4",
+    "lastFrame": "media/clips/ms-capability-last.png",
+    "duration": 3.467
   }
 ]
