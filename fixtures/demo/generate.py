@@ -117,14 +117,24 @@ BLOCK_GAP = 10
 class NoticeDoc:
     """把 notice.png / notice.txt 的内容统一成一份结构，避免图文不同步。"""
 
-    def __init__(self, title: str, date_line: str, blocks: list[tuple], footer: str):
+    def __init__(
+        self,
+        title: str,
+        date_line: str,
+        blocks: list[tuple],
+        footer: str,
+        org: str = "吉林大学",
+        dept: str = "党委学生工作部",
+    ):
         self.title = title
         self.date_line = date_line
         self.blocks = blocks          # ("p"|"li"|"h2"|"sign", text)
         self.footer = footer
+        self.org = org                # 学校
+        self.dept = dept              # 学院 / 发文单位
 
     def plain_lines(self) -> list[str]:
-        lines = ["吉林大学", "党委学生工作部", "", self.title, "", self.date_line, ""]
+        lines = [self.org, self.dept, "", self.title, "", self.date_line, ""]
         for kind, text in self.blocks:
             if kind == "h2":
                 lines.append("")
@@ -168,11 +178,11 @@ def draw_notice(doc: NoticeDoc, path: Path) -> None:
     y = 46
 
     # 页眉：学校 + 发文单位
-    org_w = text_width("吉林大学", f_org)
-    d.text(((NOTICE_W - org_w) / 2, y), "吉林大学", font=f_org, fill=BRAND)
+    org_w = text_width(doc.org, f_org)
+    d.text(((NOTICE_W - org_w) / 2, y), doc.org, font=f_org, fill=BRAND)
     y += F_ORG + 12
-    dept_w = text_width("党委学生工作部", f_dept)
-    d.text(((NOTICE_W - dept_w) / 2, y), "党委学生工作部", font=f_dept, fill=MUTED)
+    dept_w = text_width(doc.dept, f_dept)
+    d.text(((NOTICE_W - dept_w) / 2, y), doc.dept, font=f_dept, fill=MUTED)
     y += F_DEPT + 16
     d.line([(NOTICE_PAD, y), (NOTICE_W - NOTICE_PAD, y)], fill=BRAND, width=3)
     y += 34
@@ -462,10 +472,238 @@ def chat_plain_lines() -> list[str]:
     return lines
 
 
+# ================================================================ 未来日期素材
+#
+# 演示日 = 2026-11-08。真实通知里的截止时间普遍落在发布后 1~2 周内，
+# 很难同时满足「截止时间 ≥ 2026-11-15」与「材料齐全」，因此另做一套
+# 时间设定在演示日之后的素材，供录屏主流程使用。
+
+FUTURE_FOOTER = "演示素材 · 自拟通知（虚构学校，时间设定在演示日 2026-11-08 之后）"
+FUTURE2_FOOTER = "演示素材 · 自拟补充说明，用于演示冲突与变更，非真实公开通知"
+FUTURE_CAPTION = "演示素材 · 虚构班级群聊，人物与对话均为演示用途"
+
+FUTURE_DOC = NoticeDoc(
+    title="关于开展2026年“启澜杯”大学生创新创业训练计划项目申报答辩的通知",
+    date_line="发布日期：2026年11月9日",
+    org="启澜大学",
+    dept="信息工程学院",
+    blocks=[
+        ("p", "信息工程学院全体本科生："),
+        (
+            "p",
+            "为鼓励同学们结合专业所长开展创新创业实践、检验项目培育成果，学院决定举办"
+            "2026年“启澜杯”大学生创新创业训练计划项目申报答辩。现将有关事项通知如下：",
+        ),
+        ("h2", "一、答辩时间"),
+        ("li", "2026年11月20日（星期五）下午14:00，具体答辩分组另行通知。"),
+        ("h2", "二、答辩地点"),
+        ("li", "信息工程学院弘毅楼A座302会议室。"),
+        ("h2", "三、需提交材料"),
+        ("li", "《“启澜杯”项目申报表》（纸质一式两份，同时提交电子版）。"),
+        ("li", "项目支撑材料：论文、专利、获奖证书等复印件。"),
+        ("li", "指导教师意见表一份，需指导教师本人签字。"),
+        ("h2", "四、提交方式与截止时间"),
+        ("li", "提交截止时间：2026年11月18日（星期三）17:00前。"),
+        ("li", "纸质材料交至信息工程学院教学楼A座305办公室（本科生工作办公室）。"),
+        (
+            "li",
+            "电子版材料打包发送至学院本科生工作办公室邮箱（收件邮箱见通知原文），"
+            "压缩包命名为“启澜杯+学院+项目名称”。",
+        ),
+        ("h2", "五、相关要求"),
+        ("li", "每人陈述5分钟，需准备PPT；请按分组顺序提前15分钟到场签到。"),
+        ("li", "申报项目须已正式立项并有在研记录，立项材料随支撑材料一并提交。"),
+        ("sign", "信息工程学院本科生工作办公室"),
+        ("sign", "2026年11月9日"),
+    ],
+    footer=FUTURE_FOOTER,
+)
+
+FUTURE2_DOC = NoticeDoc(
+    title="关于2026年“启澜杯”大学生创新创业训练计划项目申报答辩的补充说明",
+    date_line="发布日期：2026年11月13日",
+    org="启澜大学",
+    dept="信息工程学院",
+    blocks=[
+        ("p", "各项目申报人："),
+        (
+            "p",
+            "针对同学们反映的问题，现就2026年“启澜杯”大学生创新创业训练计划项目申报答辩的"
+            "有关安排补充说明如下。",
+        ),
+        ("h2", "一、答辩地点"),
+        (
+            "p",
+            "答辩地点由“信息工程学院弘毅楼A座302会议室”调整为“信息工程学院弘毅楼A座3楼"
+            "学术报告厅”。原定302会议室不再使用，请同学们按时前往新地点参加答辩。",
+        ),
+        ("h2", "二、提交材料"),
+        (
+            "p",
+            "在原定提交《项目申报表》、项目支撑材料、指导教师意见表的基础上，增加"
+            "《一页项目介绍》一份，内容包括项目名称、起止时间、负责人及团队分工，一页A4即可，"
+            "与上述材料一并提交。",
+        ),
+        ("h2", "三、提交截止时间"),
+        (
+            "p",
+            "《项目申报表》等材料及《一页项目介绍》的提交截止时间，由原定的2026年11月18日"
+            "（星期三）17:00前提前至2026年11月17日（星期二）20:00前。",
+        ),
+        ("h2", "四、其他事项"),
+        ("p", "答辩时间、陈述时长与PPT要求均按原通知执行。"),
+        ("sign", "信息工程学院本科生工作办公室"),
+        ("sign", "2026年11月13日"),
+    ],
+    footer=FUTURE2_FOOTER,
+)
+
+FUTURE_GROUP = "启澜大学信息工程学院2024级计科1班"
+
+FUTURE_MESSAGES = [
+    {
+        "name": "李同学",
+        "time": "21:02",
+        "color": (66, 133, 244),
+        "text": "答辩还是20号（下周五）下午2点，材料18号周三下午5点前交，别搞混了。",
+    },
+    {
+        "name": "王同学",
+        "time": "21:04",
+        "color": (234, 67, 53),
+        "text": "地点改了！302会议室被占了，改到弘毅楼A座3楼报告厅，别走错了。",
+    },
+    {
+        "name": "李同学",
+        "time": "21:05",
+        "color": (66, 133, 244),
+        "text": "另外要补交一页项目介绍，就一页A4，写清项目名称和你负责的部分，跟申报表一起交。",
+    },
+    {
+        "name": "王同学",
+        "time": "21:07",
+        "color": (234, 67, 53),
+        "text": "那截止还是18号下午5点吗？我项目书还没写完。",
+    },
+    {
+        "name": "李同学",
+        "time": "21:09",
+        "color": (66, 133, 244),
+        "text": "群里说的不一定准，以学院补充通知为准，等通知出来再定。",
+    },
+]
+
+
+def future_chat_plain_lines() -> list[str]:
+    lines = [f"群聊名称：{FUTURE_GROUP}", "界面日期：2026年11月12日", ""]
+    for m in FUTURE_MESSAGES:
+        lines.append(f"{m['time']}  {m['name']}")
+        lines.append(m["text"])
+        lines.append("")
+    lines.append(FUTURE_CAPTION)
+    return lines
+
+
+# ================================================================ 真实「未来日期」通知
+#
+# 西南交通大学数学学院【资助】2027年寒假“助梦启航”研学项目选拔通知：
+# 真实公开页面，发布日期 2026-11-06，材料提交截止 2026-11-10 17:00（仍在未来），
+# 活动时间为 2027-01-17—01-22（在截止之后），含完整材料清单。
+# 来源：https://maths.swjtu.edu.cn/info/1064/27964.htm （抓取日期 2026-11-08）
+
+REAL_FUTURE_FOOTER = "演示素材 · 依据西南交通大学数学学院公开通知绘制（抓取日期 2026-11-08）"
+REAL_FUTURE_CAPTION = "演示素材 · 虚构班级群聊，人物与对话均为演示用途"
+
+REAL_FUTURE_DOC = NoticeDoc(
+    title="关于开展2027年寒假“助梦启航”受助学生出国（境）研学项目选拔工作的通知",
+    date_line="发布日期：2026年11月6日",
+    org="西南交通大学",
+    dept="数学学院",
+    blocks=[
+        ("p", "数学学院全体本科生："),
+        (
+            "p",
+            "为鼓励并支持优秀家庭经济困难学生开拓视野、丰富阅历、提升素养，学校决定开展"
+            "2027年寒假“助梦启航”受助学生出国（境）研学项目。现将相关事宜通知如下：",
+        ),
+        ("h2", "一、项目开展时间"),
+        ("li", "2027年1月17日—2027年1月22日（香港科技大学）。"),
+        ("h2", "二、资助人数"),
+        ("li", "本科生50名；数学学院可推荐人数2名。"),
+        ("h2", "三、需提交材料"),
+        ("li", "《西南交通大学“助梦启航”受助学生出国（境）研学项目申请表》（附件1）。"),
+        ("li", "正式出国成绩单。"),
+        ("li", "个人简历。"),
+        ("li", "支撑材料（获奖、科研、实践等证明）。"),
+        ("h2", "四、提交方式与截止时间"),
+        ("li", "提交截止时间：2026年11月10日（星期二）17:00前。"),
+        ("li", "提交地点：学院学生工作组X30447。"),
+        (
+            "li",
+            "提交方式：申请材料按“申请表、成绩单、简历、支撑材料”顺序整理装订，"
+            "于截止时间前一并交至学院学生工作组。",
+        ),
+        ("h2", "五、申请条件（节选）"),
+        ("li", "具有中华人民共和国国籍，年满18周岁（截止2026年11月6日）。"),
+        ("li", "全日制在籍本科生，2026—2027学年被学校认定为家庭经济特别困难学生。"),
+        ("li", "从无任何出国（境）经历（含因公和因私）。"),
+        ("sign", "数学学院学生工作组"),
+        ("sign", "2026年11月6日"),
+    ],
+    footer=REAL_FUTURE_FOOTER,
+)
+
+REAL_FUTURE_GROUP = "西南交大数学学院2024级本科班"
+
+REAL_FUTURE_MESSAGES = [
+    {
+        "name": "李同学",
+        "time": "20:36",
+        "color": (66, 133, 244),
+        "text": "研学项目材料11月10号周二下午5点前交到X30447。",
+    },
+    {
+        "name": "王同学",
+        "time": "20:38",
+        "color": (234, 67, 53),
+        "text": "提交地点改了，X30447这周不收材料，改到逸夫馆3楼314办公室。",
+    },
+    {
+        "name": "李同学",
+        "time": "20:40",
+        "color": (66, 133, 244),
+        "text": "另外还要补交一页研学计划，写清楚这学期做的项目，跟申请表一起交。",
+    },
+    {
+        "name": "王同学",
+        "time": "20:42",
+        "color": (234, 67, 53),
+        "text": "截止时间没变吧？我成绩单还没打印。",
+    },
+    {
+        "name": "李同学",
+        "time": "20:44",
+        "color": (66, 133, 244),
+        "text": "群里说的不一定准，以学院通知为准。",
+    },
+]
+
+
+def real_future_chat_plain_lines() -> list[str]:
+    lines = [f"群聊名称：{REAL_FUTURE_GROUP}", "界面日期：2026年11月8日", ""]
+    for m in REAL_FUTURE_MESSAGES:
+        lines.append(f"{m['time']}  {m['name']}")
+        lines.append(m["text"])
+        lines.append("")
+    lines.append(REAL_FUTURE_CAPTION)
+    return lines
+
+
 # ================================================================ 入口
 
 
 def main() -> None:
+    # 1) 真实素材（吉林大学，历史通知）——演示「联网核实找到官方原文」
     draw_notice(NOTICE_DOC, HERE / "notice.png")
     (HERE / "notice.txt").write_text(
         "\n".join(NOTICE_DOC.plain_lines()) + "\n", encoding="utf-8"
@@ -479,7 +717,48 @@ def main() -> None:
     draw_chat(CHAT_MESSAGES, CHAT_GROUP, CHAT_CAPTION, HERE / "chat.png")
     (HERE / "chat.txt").write_text("\n".join(chat_plain_lines()) + "\n", encoding="utf-8")
 
-    for name in ("notice.png", "notice_2.png", "chat.png"):
+    # 2) 未来日期素材（自拟）——录屏主流程
+    draw_notice(FUTURE_DOC, HERE / "notice_future.png")
+    (HERE / "notice_future.txt").write_text(
+        "\n".join(FUTURE_DOC.plain_lines()) + "\n", encoding="utf-8"
+    )
+
+    draw_notice(FUTURE2_DOC, HERE / "notice_future_2.png")
+    (HERE / "notice_future_2.txt").write_text(
+        "\n".join(FUTURE2_DOC.plain_lines()) + "\n", encoding="utf-8"
+    )
+
+    draw_chat(FUTURE_MESSAGES, FUTURE_GROUP, FUTURE_CAPTION, HERE / "chat_future.png")
+    (HERE / "chat_future.txt").write_text(
+        "\n".join(future_chat_plain_lines()) + "\n", encoding="utf-8"
+    )
+
+    # 3) 真实「未来日期」通知（西南交通大学）——真实且未逾期
+    draw_notice(REAL_FUTURE_DOC, HERE / "notice_real_future.png")
+    (HERE / "notice_real_future.txt").write_text(
+        "\n".join(REAL_FUTURE_DOC.plain_lines()) + "\n", encoding="utf-8"
+    )
+
+    draw_chat(
+        REAL_FUTURE_MESSAGES,
+        REAL_FUTURE_GROUP,
+        REAL_FUTURE_CAPTION,
+        HERE / "chat_real_future.png",
+    )
+    (HERE / "chat_real_future.txt").write_text(
+        "\n".join(real_future_chat_plain_lines()) + "\n", encoding="utf-8"
+    )
+
+    for name in (
+        "notice.png",
+        "notice_2.png",
+        "chat.png",
+        "notice_future.png",
+        "notice_future_2.png",
+        "chat_future.png",
+        "notice_real_future.png",
+        "chat_real_future.png",
+    ):
         with Image.open(HERE / name) as im:
             print(f"{name}: {im.size[0]}x{im.size[1]}")
     print("written to", HERE)
