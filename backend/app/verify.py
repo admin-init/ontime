@@ -9,9 +9,10 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import re
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 import trafilatura
@@ -49,32 +50,157 @@ JUDGE_SYSTEM = """你在核对一条校园通知的官方依据。只输出 JSON
 {"applies":"yes|no|unknown","reason":"一句话","findings":[{"field":"due_at","value":"2026-11-10T23:59:00+08:00 或文本","quote":"原文片段","impact":"normal"}],"high_impact_note":null}"""
 
 
-async def search_web(query: str, limit: int = 5) -> list[dict]:
-    """Bing 网页检索（无需 Key）。失败返回空列表，由调用方如实报告。"""
-    url = "https://www.bing.com/search"
-    params = {"q": query, "setlang": "zh-CN", "count": str(limit)}
+def _unwrap_bing(href: str) -> str:
+    """Bing 搜索结果常给 bing.com/ck/a?...&u=a1<base64url> 的跳转链接，还原成真实地址。"""
+    parsed = urlparse(href)
+    if not parsed.netloc.endswith("bing.com") or not parsed.path.startswith("/ck/a"):
+        return href
+    u = parse_qs(parsed.query).get("u", [""])[0]
+    if u.startswith("a1"):
+        u = u[2:]
     try:
-        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
-            r = await client.get(url, params=params, headers={"User-Agent": UA})
+        real = base64.urlsafe_b64decode(u + "=" * (-len(u) % 4)).decode("utf-8")
+    except Exception:  # noqa: BLE001
+        return href
+    return real if real.startswith("http") else href
+
+
+_HEADERS = {"User-Agent": UA, "Accept-Language": "zh-CN,zh;q=0.9"}
+_JS_REDIRECT = re.compile(r"""location\.replace\(\s*["']([^"']+)["']""")
+_META_REDIRECT = re.compile(r"""URL=['"]?([^'">\s]+)""", re.IGNORECASE)
+_ENGINE_HOSTS = ("so.com", "bing.com", "baidu.com")
+
+
+async def _resolve_so_link(client: httpx.AsyncClient, href: str) -> str | None:
+    """360 的 /link?m=... 是一个 JS 跳转页，取出里面写的真实地址。"""
+    if "so.com/link" not in href:
+        return href if href.startswith("http") else None
+    try:
+        r = await client.get(href)
+    except Exception:  # noqa: BLE001
+        return None
+    if r.status_code != 200:
+        return None
+    html = r.text.replace("\\/", "/")
+    m = _JS_REDIRECT.search(html) or _META_REDIRECT.search(html)
+    if m:
+        url = m.group(1)
+        return url if url.startswith("http") else None
+    final = str(r.url)
+    return final if "so.com" not in urlparse(final).netloc else None
+
+
+def _is_content_url(url: str) -> bool:
+    host = urlparse(url).netloc.lower()
+    return bool(host) and not any(host == h or host.endswith("." + h) for h in _ENGINE_HOSTS)
+
+
+async def _search_360(query: str, limit: int) -> list[dict]:
+    async with httpx.AsyncClient(timeout=25, follow_redirects=True, headers=_HEADERS) as client:
+        r = await client.get("https://www.so.com/s", params={"q": query})
         if r.status_code != 200:
             return []
         soup = BeautifulSoup(r.text, "lxml")
-        out = []
-        for li in soup.select("li.b_algo")[:limit]:
+        out: list[dict] = []
+        seen: set[str] = set()
+        for li in soup.select("li.res-list"):
+            a = li.select_one("h3 a")
+            if not a or not a.get("href"):
+                continue
+            url = await _resolve_so_link(client, a["href"])
+            if not url or url in seen or not _is_content_url(url):
+                continue
+            seen.add(url)
+            snippet = li.select_one("div.res-rich") or li.select_one("p")
+            out.append(
+                {
+                    "title": a.get_text(" ", strip=True),
+                    "url": url,
+                    "snippet": snippet.get_text(" ", strip=True) if snippet else "",
+                }
+            )
+            if len(out) >= limit:
+                break
+        return out
+
+
+async def _search_bing(query: str, limit: int) -> list[dict]:
+    params = {"q": query, "setlang": "zh-CN", "ensearch": "0"}
+    try:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+            r = await client.get(
+                "https://cn.bing.com/search", params=params, headers=_HEADERS
+            )
+        if r.status_code != 200:
+            return []
+        soup = BeautifulSoup(r.text, "lxml")
+        out: list[dict] = []
+        seen: set[str] = set()
+        for li in soup.select("li.b_algo"):
             a = li.select_one("h2 a")
             if not a or not a.get("href"):
                 continue
+            href = _unwrap_bing(a["href"])
+            if not href.startswith("http") or not _is_content_url(href):
+                continue
+            if href in seen:
+                continue
+            seen.add(href)
             snippet = li.select_one(".b_caption p") or li.select_one("p")
             out.append(
                 {
                     "title": a.get_text(" ", strip=True),
-                    "url": a["href"],
+                    "url": href,
                     "snippet": snippet.get_text(" ", strip=True) if snippet else "",
                 }
             )
+            if len(out) >= limit:
+                break
         return out
     except Exception:  # noqa: BLE001
         return []
+
+
+async def search_web(query: str, limit: int = 5) -> list[dict]:
+    """网页检索：360 主用，Bing 兜底。都失败返回空列表，由调用方如实报告。
+
+    返回的 url 一定是真实目标地址（不是搜索引擎的跳转链接）。
+    """
+    try:
+        hits = await _search_360(query, limit)
+        if hits:
+            return hits
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        return await _search_bing(query, limit)
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def _decode_html(raw: bytes, declared: str | None) -> str:
+    """按响应头 → meta charset → utf-8 → gb18030 的顺序解码，避免中文站点乱码。"""
+    encoding = (declared or "").strip().lower()
+    if not encoding:
+        m = re.search(rb"""charset=["']?([\w-]+)""", raw[:4096], re.IGNORECASE)
+        encoding = m.group(1).decode("ascii", "ignore").lower() if m else ""
+    candidates = [encoding] if encoding else []
+    for alt in ("utf-8", "gb18030"):
+        if alt not in candidates:
+            candidates.append(alt)
+    best = ""
+    best_bad = None
+    for enc in candidates:
+        try:
+            text = raw.decode(enc, errors="replace")
+        except LookupError:
+            continue
+        bad = text.count("\ufffd")
+        if best_bad is None or bad < best_bad:
+            best, best_bad = text, bad
+        if bad == 0:
+            break
+    return best
 
 
 async def fetch_page(url: str) -> dict | None:
@@ -83,9 +209,7 @@ async def fetch_page(url: str) -> dict | None:
             r = await client.get(url, headers={"User-Agent": UA})
         if r.status_code != 200:
             return None
-        if not r.encoding or r.encoding.lower() in ("iso-8859-1", "ascii"):
-            r.encoding = r.apparent_encoding or "utf-8"
-        html = r.text
+        html = _decode_html(r.content, r.charset_encoding)
         text = trafilatura.extract(html, include_comments=False, include_tables=True) or ""
         if len(text) < 120:
             soup = BeautifulSoup(html, "lxml")
@@ -173,7 +297,8 @@ FIELD_LABELS = {**EVENT_LABELS, **TASK_LABELS}
 
 async def verify_event(db: Session, event: Event, job: Job) -> dict:
     queries = [
-        f"{event.title} {settings.school_name}",
+        f"{settings.school_name} {settings.college_name} {event.title}",
+        f"{settings.school_name} {event.title} 通知",
         f"{event.title} site:{settings.school_domain}",
     ]
     seen: set[str] = set()
@@ -250,7 +375,7 @@ async def verify_event(db: Session, event: Event, job: Job) -> dict:
                 note = "来源不是本校官方页面，不能据此确认"
                 label = f"{label}（高影响）"
             display_new = fmt_value(f.field, value)
-            if state == "supported" and display_new and display_new != f.value:
+            if state == "supported" and display_new:
                 for cur_label, cur_val in current.items():
                     if cur_label.endswith(FIELD_LABELS.get(f.field, f.field)) and cur_val != display_new:
                         state = "conflict"

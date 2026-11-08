@@ -23,9 +23,9 @@ class Settings(BaseSettings):
     llm_model: str = "deepseek-flash"
     llm_timeout: float = 150.0
 
-    school_name: str = "演示大学"
-    college_name: str = "计算机学院"
-    school_domain: str = "edu.cn"
+    school_name: str = "西南交通大学"
+    college_name: str = "数学学院"
+    school_domain: str = "swjtu.edu.cn"
 
     database_url: str = f"sqlite:///{(BACKEND_DIR / 'ontime.db').as_posix()}"
     demo_mode: bool = True

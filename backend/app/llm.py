@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import re
@@ -61,15 +62,23 @@ async def complete_json(
     }
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
-    try:
-        text = await _post(payload, settings.llm_timeout)
-    except LLMError as e:
-        if "response_format" in str(e) and json_mode:
-            payload.pop("response_format", None)
+    # 空响应、非法 JSON、5xx 都可能偶发：最多重试 3 次，仍失败就把真实错误抛给调用方
+    last_error: LLMError | None = None
+    for attempt in range(1, 4):
+        try:
             text = await _post(payload, settings.llm_timeout)
-        else:
-            raise
-    return parse_json(text)
+            if not text.strip():
+                raise LLMError("模型返回空内容")
+            return parse_json(text)
+        except LLMError as e:
+            last_error = e
+            if "response_format" in str(e) and "response_format" in payload:
+                payload.pop("response_format", None)
+                continue
+            if "未配置模型 Key" in str(e) or attempt == 3:
+                raise
+            await asyncio.sleep(1.5 * attempt)
+    raise last_error or LLMError("模型调用失败")
 
 
 async def vision_transcribe(image: bytes, mime: str, prompt: str) -> str:
@@ -89,7 +98,20 @@ async def vision_transcribe(image: bytes, mime: str, prompt: str) -> str:
         "temperature": 0,
         "max_tokens": 4000,
     }
-    return await _post(payload, settings.llm_timeout)
+    last_error: LLMError | None = None
+    for attempt in range(1, 4):
+        try:
+            text = await _post(payload, settings.llm_timeout)
+            if text.strip():
+                return text
+            last_error = LLMError("视觉模型返回空内容")
+        except LLMError as e:
+            last_error = e
+            if "未配置模型 Key" in str(e):
+                raise
+        if attempt < 3:
+            await asyncio.sleep(1.5 * attempt)
+    raise last_error or LLMError("视觉模型调用失败")
 
 
 async def ping() -> dict[str, Any]:

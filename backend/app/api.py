@@ -471,9 +471,13 @@ def inbox(db: Session = Depends(get_db)):
 
     cand_out = []
     for e in candidates:
-        src = db.scalar(
-            select(Source).where(Source.id.in_([c.source_id for c in field_claims(db, "event", e.id, "title")]))
+        # 候选卡的来源直接取 title 字段的 claim，避免扫整表 Source 时命中别的行
+        title_res = resolve_field(db, "event", e.id, "title")
+        title_claim = title_res["claim"] or next(
+            (c for c in field_claims(db, "event", e.id, "title") if c.status != "rejected"),
+            None,
         )
+        src = source_map.get(title_claim.source_id) if title_claim else None
         meta = (src.meta or {}) if src else {}
         cand_out.append(
             {

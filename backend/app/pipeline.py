@@ -29,28 +29,51 @@ def normalize(text: str) -> str:
 
 
 class QuoteIndex:
-    """在忽略空白的前提下定位原文片段，返回原文本中的真实区间。"""
+    """定位原文片段，返回原文本中的真实区间。
+
+    两级匹配，都只做「空白/标点归一」，不改字：
+    1. 去掉空白后整段精确匹配；
+    2. 再去掉标点后匹配（模型抄写时标点常和原文不一致）。
+    命中后一律用原文本切片作为 quote，保证 quote == text[start:end]。
+    """
 
     def __init__(self, text: str):
         self.text = text
         self.map: list[int] = []
         chars: list[str] = []
+        self.loose_map: list[int] = []
+        loose: list[str] = []
         for i, ch in enumerate(text):
             if not ch.isspace():
                 chars.append(ch)
                 self.map.append(i)
+            if ch.isalnum():
+                loose.append(ch)
+                self.loose_map.append(i)
         self.compact = "".join(chars)
+        self.loose = "".join(loose)
+
+    @staticmethod
+    def _tight(value: str) -> str:
+        return "".join(ch for ch in unicodedata.normalize("NFKC", value) if ch.isalnum())
 
     def find(self, quote: str | None) -> tuple[int, int] | None:
         if not quote:
             return None
         q = "".join(ch for ch in unicodedata.normalize("NFKC", quote) if not ch.isspace())
-        if not q:
-            return None
-        pos = self.compact.find(q)
-        if pos < 0:
-            return None
-        return self.map[pos], self.map[pos + len(q) - 1] + 1
+        if q:
+            pos = self.compact.find(q)
+            if pos >= 0:
+                return self.map[pos], self.map[pos + len(q) - 1] + 1
+        q_loose = self._tight(quote)
+        if q_loose:
+            pos = self.loose.find(q_loose)
+            if pos >= 0:
+                return self.loose_map[pos], self.loose_map[pos + len(q_loose) - 1] + 1
+        return None
+
+    def slice(self, span: tuple[int, int]) -> str:
+        return self.text[span[0] : span[1]]
 
 
 # ---------------------------------------------------------------- 提示词
@@ -129,22 +152,26 @@ def _precision_from_quote(quote: str | None, given: str | None) -> str:
 def gate_field(
     idx: QuoteIndex, fv: FieldValue, *, time_field: bool = False
 ) -> tuple[Any, str | None, tuple[int, int] | None, str | None]:
-    """返回 (value, quote, span, status)。status=None 表示丢弃。"""
+    """返回 (value, quote, span, status)。status=None 表示丢弃。
+
+    quote 一律取原文切片，保证前端高亮位置与文字严格一致。
+    """
     if fv.value is None:
         span = idx.find(fv.quote)
         if span:
-            return None, fv.quote, span, "needs_anchor"
+            return None, idx.slice(span), span, "needs_anchor"
         return None, None, None, None
     span = idx.find(fv.quote)
     if not span:
         return None, fv.quote, None, "rejected"
+    quote = idx.slice(span)
     if time_field:
         dt = parse_dt(fv.value)
         if dt is None:
-            return None, fv.quote, span, "rejected"
+            return None, quote, span, "rejected"
         precision = _precision_from_quote(fv.quote, fv.precision)
-        return {"iso": dt.isoformat(), "precision": precision}, fv.quote, span, "supported"
-    return fv.value, fv.quote, span, "supported"
+        return {"iso": dt.isoformat(), "precision": precision}, quote, span, "supported"
+    return fv.value, quote, span, "supported"
 
 
 # ---------------------------------------------------------------- 落库
@@ -205,7 +232,9 @@ def _persist(db: Session, source: Source, result: ExtractionResult, idx: QuoteIn
         claim("task", task.id, "due_at", ex_task.due_at, time_field=True)
         claim("task", task.id, "submit_channel", ex_task.submit_channel)
         materials = [m.value for m in ex_task.materials if m.value and idx.find(m.quote)]
+        spans = [s for m in ex_task.materials if m.value and (s := idx.find(m.quote))]
         if materials:
+            span = (min(s[0] for s in spans), max(s[1] for s in spans))
             add_claim(
                 db,
                 entity_type="task",
@@ -213,7 +242,8 @@ def _persist(db: Session, source: Source, result: ExtractionResult, idx: QuoteIn
                 field="materials",
                 value=materials,
                 source_id=source.id,
-                quote="；".join(m.quote or "" for m in ex_task.materials),
+                quote=idx.slice(span),
+                quote_span=span,
                 status="supported",
             )
         refresh_task(db, task)
@@ -238,7 +268,7 @@ def _persist(db: Session, source: Source, result: ExtractionResult, idx: QuoteIn
             field="text",
             value=rule.text,
             source_id=source.id,
-            quote=ex_rule.quote,
+            quote=idx.slice(span),
             quote_span=span,
             status="supported",
         )
