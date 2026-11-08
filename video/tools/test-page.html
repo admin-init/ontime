@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>到点 · 录制环境自检</title>
+  <style>
+    :root {
+      --ink: #1c1917;
+      --muted: #78716c;
+      --line: #e7e5e4;
+      --paper: #fafaf9;
+      --green: #0e7c66;
+      --green-soft: #e4ede7;
+      --warn: #b45b3e;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1440px; height: 900px; overflow: hidden; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    }
+    .topbar {
+      height: 64px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      padding: 0 48px;
+      gap: 14px;
+      background: rgba(250, 250, 249, .9);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--green); }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+    .tag {
+      margin-left: 10px;
+      font-size: 13px;
+      color: var(--warn);
+      border: 1px solid #e8c9bd;
+      background: #fbf1ec;
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .top-right { margin-left: auto; font-size: 13px; color: var(--muted); }
+    .wrap {
+      display: grid;
+      grid-template-columns: 560px 1fr;
+      gap: 56px;
+      padding: 40px 64px 0;
+      height: calc(900px - 64px);
+    }
+    .shot {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 18px 40px rgba(28, 25, 23, .08);
+      align-self: start;
+    }
+    .shot img { width: 100%; display: block; border-radius: 6px; }
+    .shot-cap { margin-top: 10px; font-size: 12px; color: var(--muted); }
+    h1 { font-size: 34px; line-height: 1.2; margin: 4px 0 10px; letter-spacing: -.5px; }
+    .sub { font-size: 15px; color: var(--muted); line-height: 1.7; margin-bottom: 26px; }
+    .specs { border-top: 1px solid var(--line); }
+    .row {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 15px;
+    }
+    .k { width: 150px; color: var(--muted); font-size: 13px; }
+    .v { font-weight: 600; }
+    .ok { color: var(--green); font-weight: 700; }
+    .motion {
+      margin-top: 26px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 18px 20px;
+      background: #fff;
+    }
+    .motion-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .track { position: relative; height: 10px; border-radius: 999px; background: #f0eeeb; overflow: hidden; }
+    .bar {
+      position: absolute; inset: 0 auto 0 0; width: 0;
+      background: var(--green);
+      animation: fill 12s linear forwards;
+    }
+    .ball {
+      position: absolute; top: -5px; left: 0; width: 20px; height: 20px; border-radius: 999px;
+      background: #fff; border: 3px solid var(--green);
+      animation: slide 12s linear forwards;
+    }
+    @keyframes fill { from { width: 0; } to { width: 100%; } }
+    @keyframes slide { from { left: 0; } to { left: calc(100% - 20px); } }
+    .timer { font-variant-numeric: tabular-nums; font-size: 28px; font-weight: 700; margin-top: 16px; letter-spacing: .5px; }
+    .note {
+      margin-top: 22px;
+      background: var(--green-soft);
+      color: #145347;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .foot {
+      position: absolute; left: 64px; right: 64px; bottom: 22px;
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--muted);
+      border-top: 1px solid var(--line); padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <span class="dot"></span>
+    <span class="brand">到点</span>
+    <span class="tag">录制环境自检 · 非产品界面</span>
+    <span class="top-right">本页只验证录屏参数，不进入成片</span>
+  </header>
+
+  <main class="wrap">
+    <section class="shot">
+      <img src="../../fixtures/demo/unnc_notice.png" alt="UNNC 公开讲座通知素材" />
+      <div class="shot-cap">测试素材：fixtures/demo/unnc_notice.png（真实公开页，已按演示素材重绘）</div>
+    </section>
+
+    <section>
+      <h1>录制自检</h1>
+      <div class="sub">
+        目标：确认浏览器捕获、分辨率、帧率、文字清晰度与文件体积。<br />
+        这段画面不会进入成片；它只回答“这台机器能不能稳定录 1440×900 的 UI”。
+      </div>
+
+      <div class="specs">
+        <div class="row"><span class="k">画布</span><span class="v">1440 × 900</span><span class="ok">16:10</span></div>
+        <div class="row"><span class="k">目标帧率</span><span class="v">30 fps CFR</span><span class="ok">H.264</span></div>
+        <div class="row"><span class="k">像素格式</span><span class="v">yuv420p / bt709</span></div>
+        <div class="row"><span class="k">字体</span><span class="v">Noto Sans SC / 微软雅黑</span></div>
+        <div class="row"><span class="k">页面缩放</span><span class="v">100%</span><span class="ok">已校准</span></div>
+      </div>
+
+      <div class="motion">
+        <div class="motion-head"><span>运动与帧率检查</span><span>进度条应在 12 秒内匀速走完</span></div>
+        <div class="track"><span class="bar"></span><span class="ball"></span></div>
+        <div class="timer" id="timer">00.0s</div>
+      </div>
+
+      <div class="note">
+        如果成片里进度条卡顿、文字发虚、或时长明显偏离 12 秒，说明捕获掉帧或编码参数不对。
+        先修录制链路，再拍产品。
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>到点 · 录制备战</span>
+    <span>recordings/_selftest · 不提交仓库</span>
+  </footer>
+
+  <script>
+    const t0 = performance.now();
+    const timer = document.getElementById('timer');
+    function tick(now) {
+      const s = (now - t0) / 1000;
+      timer.textContent = s.toFixed(1).padStart(4, '0') + 's';
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# 视频工程的本地依赖与渲染产物
+node_modules/
+out/
+*.webm
+*.mp4
+*.mov
+*.mkv
