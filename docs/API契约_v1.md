@@ -75,7 +75,7 @@ type Merge = {
   id: string; score: number; reasons: string[]; state: "pending";   // score 为 0–5 的匹配分，不是百分比
   a: { id: string; title: string; start_display: string|null };
   b: { id: string; title: string; start_display: string|null };
-  diff: { kind: "add"|"change"|"task"; field: string; label: string;
+  diff: { kind: "add"|"change"|"task"|"material"; field: string; label: string;
           old: string|null; new: string|null }[];
 };
 ```

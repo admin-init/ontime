@@ -89,10 +89,21 @@ export default function Today() {
     if (toggling.has(t.id)) return
     setToggling((prev) => new Set(prev).add(t.id))
     const next = t.state === 'open' ? 'done' : 'open'
-    // 先改本地，勾选不等待网络
-    setData((prev) =>
-      prev ? { ...prev, tasks: prev.tasks.map((x) => (x.id === t.id ? { ...x, state: next } : x)) } : prev,
-    )
+    // 先改本地，勾选不等待网络；事件行的 open_task_count 同步增减，
+    // 保证顶部「未完成」与同一屏事件行「待办」始终一致。
+    setData((prev) => {
+      if (!prev) return prev
+      const delta = next === 'done' ? -1 : 1
+      return {
+        ...prev,
+        tasks: prev.tasks.map((x) => (x.id === t.id ? { ...x, state: next } : x)),
+        events: prev.events.map((ev) =>
+          ev.id === t.event_id
+            ? { ...ev, open_task_count: Math.max(0, ev.open_task_count + delta) }
+            : ev,
+        ),
+      }
+    })
     try {
       await toggleTask(t.id)
     } catch (e) {

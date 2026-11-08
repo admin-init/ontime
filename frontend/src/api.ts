@@ -123,7 +123,7 @@ export type Candidate = EventBrief & {
 }
 
 export type MergeDiffRow = {
-  kind: 'add' | 'change' | 'task'
+  kind: 'add' | 'change' | 'task' | 'material'
   field: string
   label: string
   old: string | null

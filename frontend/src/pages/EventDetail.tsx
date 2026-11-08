@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   applyFinding,
@@ -546,6 +546,8 @@ export default function EventDetail() {
   const [loading, setLoading] = useState(true)
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [exported, setExported] = useState(false)
+  const exportTimer = useRef<number | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -580,6 +582,12 @@ export default function EventDetail() {
   const onDecide = (claimId: string, action: 'accept' | 'reject') => void run(() => decideClaim(claimId, action))
   const onPatch = (fieldKey: string, value: string) => void run(() => patchEvent(id, fieldKey, value))
   const firstConflictKey = detail?.fields.find((f) => f.status === 'conflict')?.key
+
+  function markExported() {
+    if (exportTimer.current !== null) window.clearTimeout(exportTimer.current)
+    setExported(true)
+    exportTimer.current = window.setTimeout(() => setExported(false), 1500)
+  }
 
   if (loading && !detail) return <LoadingRow />
   if (!detail) {
@@ -632,9 +640,14 @@ export default function EventDetail() {
               确认事件
             </button>
           )}
-          <a className="btn btn-secondary" href={icsUrl(id)}>
+          <a className="btn btn-secondary" href={icsUrl(id)} onClick={markExported}>
             导出日历
           </a>
+          {exported && (
+            <span className="export-feedback" role="status">
+              已导出日历
+            </span>
+          )}
         </div>
       </div>
 

@@ -1164,6 +1164,14 @@ textarea {
   flex: none;
 }
 
+.export-feedback {
+  align-self: center;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--supported);
+  white-space: nowrap;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 620px 360px;

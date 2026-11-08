@@ -26,6 +26,7 @@ from app.claims import (
     refresh_event,
     refresh_task,
     resolve_field,
+    same_value_detail,
 )
 from app.core import MEDIA_DIR, get_db, settings
 from app.models import (
@@ -205,13 +206,24 @@ def _diff(db: Session, a: Event, b: Event) -> list[dict]:
         new = fmt_value(field, rb["value"], dt_parts(rb["value"])[1])
         if ra["value"] is None:
             out.append({"kind": "add", "field": field, "label": label, "old": None, "new": new})
+        elif same_value_detail(ra["value"], rb["value"]):
+            # 同一值的不同详略（短串是长串子串）不产生 diff，与 resolve_field 的冲突判定一致。
+            continue
         elif repr(ra["value"]) != repr(rb["value"]):
             out.append({"kind": "change", "field": field, "label": label, "old": old, "new": new})
-    existing_tasks = {t.action for t in a.tasks}
+    a_tasks = {t.action: t for t in a.tasks}
+    emitted_materials: set[str] = set()
     for t in b.tasks:
-        if t.action not in existing_tasks:
+        old_task = a_tasks.get(t.action)
+        if old_task is None:
             due = fmt_value("due_at", {"iso": t.due_at.isoformat(), "precision": t.due_precision}) if t.due_at else None
             out.append({"kind": "task", "field": "task", "label": "新增待办", "old": None, "new": f"{t.action}{'（' + due + '）' if due else ''}"})
+        old_materials = set(old_task.materials or []) if old_task else set()
+        for material in t.materials or []:
+            if material in old_materials or material in emitted_materials:
+                continue
+            emitted_materials.add(material)
+            out.append({"kind": "material", "field": "materials", "label": "新增材料", "old": None, "new": material})
     return out
 
 
@@ -475,7 +487,16 @@ def export_ics(event_id: str, db: Session = Depends(get_db)):
         ev = ICalEvent()
         ev.add("summary", event.title)
         ev.add("dtstart", event.start_at)
-        ev.add("dtend", event.start_at + timedelta(hours=2))
+        # 优先使用事件自身的结束时间，导出才与页面显示的活动时段一致。
+        if event.end_at:
+            end_at = event.end_at
+            if end_at <= event.start_at:
+                # 结束早于开始的异常数据不生成非法事件，按兜底时长处理。
+                end_at = event.start_at + timedelta(hours=1)
+        else:
+            # 兜底：没有 end_at 时按 1 小时默认时长，仅用于缺失结束时间的事件。
+            end_at = event.start_at + timedelta(hours=1)
+        ev.add("dtend", end_at)
         if event.location:
             ev.add("location", event.location)
         ev.add("description", "来自「到点」推送")
@@ -487,7 +508,8 @@ def export_ics(event_id: str, db: Session = Depends(get_db)):
         ev = ICalEvent()
         ev.add("summary", f"截止：{task.action}")
         ev.add("dtstart", task.due_at)
-        ev.add("dtend", task.due_at)
+        # 任务只有一个截止时刻；给 30 分钟展示块，保证 DTEND 晚于 DTSTART（RFC 5545）。
+        ev.add("dtend", task.due_at + timedelta(minutes=30))
         ev.add("uid", f"task-{task.id}@ontime")
         if event.title:
             ev.add("description", f"{event.title}｜来自「到点」")

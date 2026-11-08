@@ -133,6 +133,68 @@ def _norm(value) -> str:
     return repr(value)
 
 
+def _norm_text(value) -> str:
+    """去掉标点与空白，只留下文字/数字，用于比较同一字段的不同详略。"""
+    if not isinstance(value, str):
+        return ""
+    return "".join(ch for ch in value if ch.isalnum())
+
+
+def _value_key(value):
+    if isinstance(value, str):
+        text = _norm_text(value)
+        return ("text", text) if text else ("repr", value)
+    return ("repr", _norm(value))
+
+
+def _strictly_contains(longer, shorter) -> bool:
+    if not isinstance(longer, str) or not isinstance(shorter, str):
+        return False
+    long_n, short_n = _norm_text(longer), _norm_text(shorter)
+    return bool(short_n) and len(short_n) < len(long_n) and short_n in long_n
+
+
+def same_value_detail(a, b) -> bool:
+    """两个候选是否只是同一值的不同详略。
+
+    只认包含关系：去标点/空白后，短串完整出现在长串里（如「讲座」之于
+    「公开讲座：从工程师到科技创业者…」）。不做相似度判断——相似不等于同值。
+    """
+    if isinstance(a, str) and isinstance(b, str):
+        a_n, b_n = _norm_text(a), _norm_text(b)
+        if a_n and b_n:
+            return a_n == b_n or a_n in b_n or b_n in a_n
+    return _norm(a) == _norm(b)
+
+
+def _distinct_count(values: list) -> int:
+    """候选里真正互不相同的值有多少个。
+
+    被其他候选包含的简略值先折叠掉：若剩下的最大值只有一个，就视为同一值。
+    """
+    unique: list = []
+    seen: set = set()
+    for value in values:
+        key = _value_key(value)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(value)
+    if len(unique) <= 1:
+        return len(unique)
+    maximal = [
+        value
+        for i, value in enumerate(unique)
+        if not any(j != i and _strictly_contains(other, value) for j, other in enumerate(unique))
+    ]
+    return max(1, len(maximal))
+
+
+def _fullest(pool: list) -> Claim:
+    """同一值的不同详略里保留信息更完整的那条。"""
+    return max(pool, key=lambda c: len(str(c.value or "")))
+
+
 def resolve_field(db: Session, entity_type: str, entity_id: str, field: str) -> dict:
     """返回 {value, status, precision, claim}，供视图刷新与前端展示共用。"""
     rows = [
@@ -147,12 +209,17 @@ def resolve_field(db: Session, entity_type: str, entity_id: str, field: str) -> 
     pool = confirmed or supported
     if pool:
         winner = pool[-1]
-        distinct = {_norm(c.value) for c in pool}
-        status = "user_confirmed" if confirmed else ("conflict" if len(distinct) > 1 else "supported")
-        if field == "title" and status == "conflict":
+        if confirmed:
+            return {"value": winner.value, "status": "user_confirmed", "claim": winner}
+        distinct = _distinct_count([c.value for c in pool])
+        status = "conflict" if distinct > 1 else "supported"
+        if distinct <= 1:
+            # 同一值的不同详略（如群聊简称与正式标题）不算冲突，保留更完整的那条。
+            winner = _fullest(pool)
+        elif field == "title":
             # 冲突仍并排展示、由用户裁决；展示默认取信息量更大的完整标题，
             # 避免「讲座」这类群聊简称盖过正式通知标题。
-            winner = max(pool, key=lambda c: len(str(c.value or "")))
+            winner = _fullest(pool)
         return {"value": winner.value, "status": status, "claim": winner}
     if pending:
         return {"value": None, "status": pending[-1].status, "claim": pending[-1]}
