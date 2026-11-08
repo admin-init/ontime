@@ -30,8 +30,11 @@ export default function Today() {
 
   const tasks: TaskRow[] = []
   if (data) {
+    // 只有已确认的事件才进入行动台；候选事件的任务留在收件箱里确认。
+    const confirmed = new Set(data.events.map((ev) => ev.id))
     const horizon = Date.now() + WEEK_MS
     for (const t of data.tasks) {
+      if (!confirmed.has(t.event_id)) continue
       if (t.state === 'dismissed' || !t.due_at) continue
       if (new Date(t.due_at).getTime() > horizon) continue
       tasks.push(t)

@@ -27,7 +27,7 @@ export default function Settings() {
       <div className="page-head">
         <div>
           <h1>设置</h1>
-          <div className="page-sub">能力边界、演示数据与隐私说明。能演示的才标注「已实现」，没做的绝不含糊。</div>
+          <div className="page-sub">能力边界、演示数据与隐私说明。已接入的标「已实现」，没接入的明确写「演示暂未接入」。</div>
         </div>
       </div>
 
@@ -38,7 +38,7 @@ export default function Settings() {
         <section className="card">
           <div className="card-head">
             <h2>能力矩阵</h2>
-            <span className="muted">由 /api/capabilities 提供，全站口径一致</span>
+            <span className="muted">与后端声明的能力边界一致</span>
           </div>
           <table className="table cap-table">
             <thead>
@@ -82,7 +82,7 @@ export default function Settings() {
         </div>
         <div className="reset-zone">
           <div className="muted">
-            「演示重置」会清空所有事件、任务、来源与截图，恢复到空状态。仅用于演示，不会影响真实数据。
+            「演示重置」会清空本机所有事件、任务、来源与截图，恢复到空状态，仅用于演示前重来。
           </div>
           {resetError && <ErrorBox>{resetError}</ErrorBox>}
           {resetState === 'done' && <div className="reset-ok">已重置，当前数据为空。</div>}

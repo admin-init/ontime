@@ -47,6 +47,25 @@ function AnchorInput({ field, busy, onPatch }: { field: Field; busy: boolean; on
   )
 }
 
+function ClaimSource({ source }: { source: Claim['source'] }) {
+  if (!source) return null
+  return (
+    <span className="claim-src">
+      {source.image_url && (
+        <a href={source.image_url} target="_blank" rel="noreferrer">
+          打开原图
+        </a>
+      )}
+      {source.url && (
+        <a href={source.url} target="_blank" rel="noreferrer">
+          打开链接
+        </a>
+      )}
+      <span className="muted">{source.title ?? ''}</span>
+    </span>
+  )
+}
+
 function ClaimList({
   claims,
   busy,
@@ -59,45 +78,39 @@ function ClaimList({
   if (claims.length === 0) return <div className="claim-empty muted">暂无字段出处。</div>
   return (
     <ul className="claim-list">
-      {claims.map((c) => (
-        <li key={c.id} className={c.status === 'rejected' ? 'claim rejected' : 'claim'}>
-          <div className="claim-head">
-            <StatusDot status={c.status} />
-            <span>{statusText(c.status)}</span>
-            <span className="muted">{originText(c.origin)}</span>
-            {c.source && (
-              <span className="claim-src">
-                {c.source.image_url && (
-                  <a href={c.source.image_url} target="_blank" rel="noreferrer">
-                    打开原图
-                  </a>
-                )}
-                {c.source.url && (
-                  <a href={c.source.url} target="_blank" rel="noreferrer">
-                    打开链接
-                  </a>
-                )}
-                <span className="muted">{c.source.title ?? ''}</span>
-              </span>
-            )}
-          </div>
-          {c.quote && <Quote text={c.quote} />}
-          {c.status === 'user_confirmed' ? (
-            <div>
-              <Badge tone="success">已采纳</Badge>
+      {claims.map((c) => {
+        // 空值 claim 只是「原文提到了这句话」，采纳它不会产生任何值，只能拒绝。
+        const emptyClaim = c.value === null
+        return (
+          <li key={c.id} className={c.status === 'rejected' ? 'claim rejected' : 'claim'}>
+            <div className="claim-head">
+              <StatusDot status={c.status} />
+              <span>{statusText(c.status)}</span>
+              <span className="muted">{originText(c.origin)}</span>
+              <ClaimSource source={c.source} />
             </div>
-          ) : c.status !== 'rejected' ? (
-            <div className="claim-actions">
-              <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => onDecide(c.id, 'accept')}>
-                采纳
-              </button>
-              <button className="btn btn-sm" disabled={busy} onClick={() => onDecide(c.id, 'reject')}>
-                拒绝
-              </button>
-            </div>
-          ) : null}
-        </li>
-      ))}
+            {c.quote && <Quote text={c.quote} />}
+            {c.status === 'user_confirmed' ? (
+              <div>
+                <Badge tone="success">已采纳</Badge>
+              </div>
+            ) : c.status !== 'rejected' ? (
+              <div className="claim-actions">
+                {emptyClaim ? (
+                  <span className="muted">缺少具体内容，可拒绝此说法或在上方补充。</span>
+                ) : (
+                  <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => onDecide(c.id, 'accept')}>
+                    采纳
+                  </button>
+                )}
+                <button className="btn btn-sm" disabled={busy} onClick={() => onDecide(c.id, 'reject')}>
+                  拒绝
+                </button>
+              </div>
+            ) : null}
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -115,18 +128,26 @@ function FieldRow({
   onDecide: (claimId: string, action: 'accept' | 'reject') => void
   onPatch: (fieldKey: string, value: string) => void
 }) {
-  // 冲突字段默认展开，避免漏看候选值
-  const [open, setOpen] = useState(field.status === 'conflict')
+  // 冲突与缺依据的字段默认展开，避免漏看候选值或忘了补日期
+  const [open, setOpen] = useState(field.status === 'conflict' || field.status === 'needs_anchor')
   const options = field.claims.filter((c) => c.status !== 'rejected')
   const hasClaims = field.claims.length > 0
+  const fallback =
+    field.status === 'needs_anchor'
+      ? '缺少日期依据，待确认'
+      : field.status === 'conflict'
+        ? '存在不同说法，待选择'
+        : field.status === 'insufficient'
+          ? '信息不足，待补充'
+          : field.status === 'unconfirmed'
+            ? '未确认'
+            : '—'
   return (
     <div className="field-row">
       <button className="field-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <StatusDot status={field.status} />
         <span className="field-label">{field.label}</span>
-        <span className="field-display">
-          {field.display ?? (field.status === 'needs_anchor' ? '待确认' : '—')}
-        </span>
+        <span className="field-display">{field.display ?? fallback}</span>
         {hasClaims && <span className="muted field-count">{`${field.claims.length} 条出处`}</span>}
         <span className="chev">{open ? '▾' : '▸'}</span>
       </button>
@@ -148,6 +169,7 @@ function FieldRow({
                   <div key={c.id} className="conflict-option">
                     <div className="co-value">{c.display ?? String(c.value ?? '—')}</div>
                     <div className="co-src muted">{c.source?.title ?? '未知来源'}</div>
+                    {c.quote && <Quote text={c.quote} />}
                     <div className="co-actions">
                       <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => onDecide(c.id, 'accept')}>
                         采用
@@ -161,7 +183,10 @@ function FieldRow({
               </div>
             </div>
           )}
-          <ClaimList claims={field.claims} busy={busy} onDecide={onDecide} />
+          {/* 冲突面板已经并排展示候选值与来源，不再重复一份同样的裁决按钮。 */}
+          {!(field.status === 'conflict' && options.length > 1) && (
+            <ClaimList claims={field.claims} busy={busy} onDecide={onDecide} />
+          )}
         </div>
       )}
     </div>

@@ -681,8 +681,7 @@ input[type='checkbox'] {
   color: var(--text);
 }
 
-.step-done + .step .step-line,
-.step-line.done {
+.step-done .step-line {
   background: var(--primary);
 }
 

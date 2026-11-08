@@ -66,11 +66,13 @@ function CandidateCard({ c, busy, onAct }: { c: Candidate; busy: boolean; onAct:
 }
 
 function MergeCard({ m, busy, onAct }: { m: Merge; busy: boolean; onAct: (fn: () => Promise<unknown>) => void }) {
+  // 契约只约定 score 为 number：后端当前是 0–5 的匹配分，不要按百分比硬算。
+  const scoreText = m.score <= 1 ? `相似度 ${Math.round(m.score * 100)}%` : `匹配分 ${m.score.toFixed(1)}`
   return (
     <article className="card">
       <div className="card-head">
         <h3>疑似同一件事</h3>
-        <Badge tone="info">相似度 {Math.round(m.score * 100)}%</Badge>
+        <Badge tone="info">{scoreText}</Badge>
       </div>
       <div className="merge-vs">
         <div className="merge-side">
