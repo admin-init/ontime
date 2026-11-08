@@ -699,6 +699,221 @@ def real_future_chat_plain_lines() -> list[str]:
     return lines
 
 
+# ================================================================ UNNC 套
+#
+# 来源：宁波诺丁汉大学 活动资讯 › 活动详情
+#   《公开讲座：从工程师到科技创业者与跨国投资人 - 启迪新一代创新者与领导者》
+#   https://www.nottingham.edu.cn/cn/events/event-details.aspx?id=04a1e20c-c3a3-4971-a962-4b4f7fde9123&language=zh
+#   抓取日期 2026-11-08。正文为中文原文（含中英混排元素），逐字保留，不翻译、不改写。
+
+UNNC_W = 1000
+UNNC_PAD = 84
+UNNC_TEXT_W = UNNC_W - 2 * UNNC_PAD
+
+UNNC_PURPLE = (74, 44, 122)
+UNNC_TINT = (245, 241, 250)
+UNNC_SOFT = (128, 112, 158)
+UNNC_LINK = (24, 108, 176)
+UNNC_BODY = (38, 38, 38)
+
+UNNC_ORG_CN = "宁波诺丁汉大学"
+UNNC_ORG_EN = "UNIVERSITY OF NOTTINGHAM NINGBO CHINA"
+UNNC_CRUMB = "宁波诺丁汉大学  ›  活动资讯  ›  活动详情"
+UNNC_DATE_BLOCK = "十一月2026 15   09:30 - 11:00"
+UNNC_VENUE = "思源报告厅"
+UNNC_TITLE = "公开讲座：从工程师到科技创业者与跨国投资人 - 启迪新一代创新者与领导者"
+UNNC_P1 = "毕业季将至，我们荣幸邀请我校荣誉教授蔡奕鸿先生，带来关于个人成长、职业选择与人生价值的分享。"
+UNNC_P2 = "本次公开讲座面向应届毕业生、所有在校生、教职工、校友及社会公众开放。"
+UNNC_FIELDS = [
+    ("主题", "从工程师到科技创业者与跨国投资人 - 启迪新一代创新者与领导者"),
+    ("嘉宾", "蔡奕鸿先生（G-COVE福鹏绿科集团创始人、主席兼首席执行官）"),
+    ("时间", "2026年11月15日上午9:30-11:00"),
+    ("地点", "思源报告厅"),
+    ("语言", "英文（配讯飞中文翻译）"),
+]
+UNNC_SIGNUP_LEAD = "本次活动需要报名，请在11月12日之前登录下列链接完成注册："
+UNNC_SIGNUP_LINK = "https://unncevents.marketup.cn/event-center/event/5506344433276928"
+UNNC_P3 = "欢迎到场聆听，为各自的前行之路汲取启发。"
+UNNC_P4 = (
+    "*完整参与本次活动，即可获得中国文化课实践课（SPDPO）蓝色素质拓展学分2个。名额有限、先到先得"
+)
+UNNC_FOOTER = "（演示素材 · 依据宁波诺丁汉大学公开活动页绘制，抓取日期 2026-11-08）"
+
+UNNC_GROUP = "UNNC 计算机学院2024级"
+UNNC_CAPTION = "演示素材 · 虚构班级群聊，人物与对话均为演示用途"
+
+UNNC_MESSAGES = [
+    {
+        "name": "李同学",
+        "time": "21:06",
+        "color": (66, 133, 244),
+        "text": "讲座还是15号上午9:30，思源报告厅，报名要在12号前完成哈。",
+    },
+    {
+        "name": "王同学",
+        "time": "21:08",
+        "color": (234, 67, 53),
+        "text": "地点改了！思源报告厅这周被占了，改到劳伦斯报告厅 Lawrence Auditorium。",
+    },
+    {
+        "name": "Amy",
+        "time": "21:10",
+        "color": (52, 168, 83),
+        "text": "btw 还要交一份 one-page project intro，和报名表一起交。",
+    },
+    {
+        "name": "王同学",
+        "time": "21:12",
+        "color": (234, 67, 53),
+        "text": "deadline 是 12 号还是 this Friday？student portal 上没写清楚。",
+    },
+    {
+        "name": "李同学",
+        "time": "21:14",
+        "color": (66, 133, 244),
+        "text": "群里说的不一定准，等学院通知。我先按12号前注册。",
+    },
+]
+
+
+def unnc_notice_plain_lines() -> list[str]:
+    lines = [
+        UNNC_ORG_CN,
+        UNNC_ORG_EN,
+        "",
+        UNNC_CRUMB,
+        "",
+        UNNC_DATE_BLOCK,
+        "",
+        UNNC_TITLE,
+        "",
+        UNNC_VENUE,
+        "",
+        UNNC_P1,
+        UNNC_P2,
+        "",
+    ]
+    for label, value in UNNC_FIELDS:
+        lines.append(f"{label}　{value}")
+    lines.append("")
+    lines.append(UNNC_SIGNUP_LEAD)
+    lines.append(UNNC_SIGNUP_LINK)
+    lines.append("")
+    lines.append(UNNC_P3)
+    lines.append("")
+    lines.append(UNNC_P4)
+    lines.append("")
+    lines.append(UNNC_FOOTER)
+    return lines
+
+
+def unnc_chat_plain_lines() -> list[str]:
+    lines = [f"群聊名称：{UNNC_GROUP}", "界面日期：2026年11月8日", ""]
+    for m in UNNC_MESSAGES:
+        lines.append(f"{m['time']}  {m['name']}")
+        lines.append(m["text"])
+        lines.append("")
+    lines.append(UNNC_CAPTION)
+    return lines
+
+
+def draw_unnc_notice(path: Path) -> None:
+    """渲染 UNNC 活动详情页风格的「通知截图」，保留原文语言与排版特征。"""
+    f_org = font(28, bold=True)
+    f_en = font(14)
+    f_crumb = font(15)
+    f_date = font(20, bold=True)
+    f_venue = font(16)
+    f_title = font(25, bold=True)
+    f_body = font(18)
+    f_label = font(18, bold=True)
+    f_link = font(16)
+    f_foot = font(15)
+
+    img = Image.new("RGB", (UNNC_W, 2400), (255, 255, 255))
+    d = ImageDraw.Draw(img)
+
+    y = 44
+    # 页眉：中文校名 + 英文校名（UNNC 品牌紫）
+    d.text((UNNC_PAD, y), UNNC_ORG_CN, font=f_org, fill=UNNC_PURPLE)
+    y += 34
+    # 英文校名字母间距
+    cx = UNNC_PAD
+    for ch in UNNC_ORG_EN:
+        d.text((cx, y), ch, font=f_en, fill=UNNC_SOFT)
+        cx += f_en.getlength(ch) + 1.6
+    y += 26
+    d.rectangle([UNNC_PAD, y, UNNC_W - UNNC_PAD, y + 3], fill=UNNC_PURPLE)
+    y += 24
+
+    # 面包屑
+    d.text((UNNC_PAD, y), UNNC_CRUMB, font=f_crumb, fill=UNNC_SOFT)
+    y += 34
+
+    # 日期块（原文排版：日期在标题上方）
+    d.rectangle([UNNC_PAD, y, UNNC_PAD + 330, y + 40], fill=UNNC_TINT)
+    d.text((UNNC_PAD + 16, y + 9), UNNC_DATE_BLOCK, font=f_date, fill=UNNC_PURPLE)
+    y += 54
+
+    # 标题
+    # 标题（过长时自动缩小字号）
+    t_size = 25
+    while t_size > 20 and len(wrap(UNNC_TITLE, font(t_size, bold=True), UNNC_TEXT_W)) > 1:
+        t_size -= 1
+    f_title = font(t_size, bold=True)
+    for ln in wrap(UNNC_TITLE, f_title, UNNC_TEXT_W):
+        d.text((UNNC_PAD, y), ln, font=f_title, fill=(28, 28, 28))
+        y += t_size + 8
+    y += 10
+
+    # 地点（原文以 meta 行呈现）
+    d.text((UNNC_PAD, y), UNNC_VENUE, font=f_venue, fill=UNNC_SOFT)
+    y += 30
+
+    # 分隔
+    d.rectangle([UNNC_PAD, y, UNNC_W - UNNC_PAD, y + 1], fill=(228, 228, 232))
+    y += 24
+
+    # 正文
+    for para in (UNNC_P1, UNNC_P2):
+        for ln in wrap(para, f_body, UNNC_TEXT_W):
+            d.text((UNNC_PAD, y), ln, font=f_body, fill=UNNC_BODY)
+            y += 30
+        y += 12
+
+    # 原文中已加粗的字段（主题/嘉宾/时间/地点/语言）
+    for label, value in UNNC_FIELDS:
+        lw = text_width(label + "　", f_label)
+        d.text((UNNC_PAD, y), label, font=f_label, fill=UNNC_PURPLE)
+        d.text((UNNC_PAD + lw, y), value, font=f_body, fill=UNNC_BODY)
+        y += 32
+    y += 10
+
+    # 报名：原文句 + 原文链接目标
+    for ln in wrap(UNNC_SIGNUP_LEAD, f_body, UNNC_TEXT_W):
+        d.text((UNNC_PAD, y), ln, font=f_body, fill=UNNC_BODY)
+        y += 30
+    link_w = text_width(UNNC_SIGNUP_LINK, f_link)
+    d.text((UNNC_PAD, y), UNNC_SIGNUP_LINK, font=f_link, fill=UNNC_LINK)
+    d.line([(UNNC_PAD, y + 22), (UNNC_PAD + link_w, y + 22)], fill=UNNC_LINK, width=1)
+    y += 44
+
+    for para in (UNNC_P3, UNNC_P4):
+        for ln in wrap(para, f_body, UNNC_TEXT_W):
+            d.text((UNNC_PAD, y), ln, font=f_body, fill=UNNC_BODY)
+            y += 30
+        y += 12
+
+    # 页脚
+    y += 16
+    d.rectangle([UNNC_PAD, y, UNNC_W - UNNC_PAD, y + 1], fill=(228, 228, 232))
+    y += 14
+    d.text((UNNC_PAD, y), UNNC_FOOTER, font=f_foot, fill=(150, 150, 150))
+    y += F_FOOT + 36
+
+    img.crop((0, 0, UNNC_W, y)).save(path, "PNG")
+
+
 # ================================================================ 入口
 
 
@@ -749,6 +964,17 @@ def main() -> None:
         "\n".join(real_future_chat_plain_lines()) + "\n", encoding="utf-8"
     )
 
+    # 4) UNNC 套（真实通知 + 虚构群聊）
+    draw_unnc_notice(HERE / "unnc_notice.png")
+    (HERE / "unnc_notice.txt").write_text(
+        "\n".join(unnc_notice_plain_lines()) + "\n", encoding="utf-8"
+    )
+
+    draw_chat(UNNC_MESSAGES, UNNC_GROUP, UNNC_CAPTION, HERE / "unnc_chat.png")
+    (HERE / "unnc_chat.txt").write_text(
+        "\n".join(unnc_chat_plain_lines()) + "\n", encoding="utf-8"
+    )
+
     for name in (
         "notice.png",
         "notice_2.png",
@@ -758,6 +984,8 @@ def main() -> None:
         "chat_future.png",
         "notice_real_future.png",
         "chat_real_future.png",
+        "unnc_notice.png",
+        "unnc_chat.png",
     ):
         with Image.open(HERE / name) as im:
             print(f"{name}: {im.size[0]}x{im.size[1]}")
