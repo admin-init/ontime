@@ -152,13 +152,6 @@ fs.writeFileSync(
   'utf8',
 );
 
-const bgm = path.join(REMOTION, 'public', 'bgm.mp3');
-fs.writeFileSync(
-  path.join(SRC, 'bgm-manifest.json'),
-  `${JSON.stringify({exists: fs.existsSync(bgm), path: 'bgm.mp3'}, null, 2)}\n`,
-  'utf8',
-);
-
 console.log('\nprepared:');
 for (const item of manifest) {
   console.log(`  ${item.id.padEnd(16)} ${item.duration.toFixed(2)}s  x${item.rate}`);

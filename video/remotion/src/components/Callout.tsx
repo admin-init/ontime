@@ -27,12 +27,15 @@ export const Callout: React.FC<{
 
   const [x, y, w, h] = spec.box;
   const color = toneColor(spec.tone);
-  const border = 1.15 / zoom;
-  const fontSize = 13 / zoom;
-  const padX = 7 / zoom;
-  const padY = 4 / zoom;
-  const gap = 6 / zoom;
+  const border = 2.5 / zoom;
+  const fontSize = 23 / zoom;
+  const padX = 9 / zoom;
+  const padY = 5 / zoom;
+  const gap = 8 / zoom;
   const side = spec.side ?? 'top';
+  const isSide = side === 'left' || side === 'right';
+  const labelWidth = isSide ? 170 / zoom : 'max-content';
+  const labelMaxWidth = isSide ? undefined : 360 / zoom;
 
   const sideStyle: React.CSSProperties =
     side === 'bottom'
@@ -61,7 +64,7 @@ export const Callout: React.FC<{
         width: `${w * 100}%`,
         height: `${h * 100}%`,
         border: `${border}px solid ${color}`,
-        borderRadius: 2 / zoom,
+        borderRadius: 3 / zoom,
         opacity,
         pointerEvents: 'none',
       }}
@@ -70,17 +73,20 @@ export const Callout: React.FC<{
         style={{
           position: 'absolute',
           ...sideStyle,
+          width: labelWidth,
+          maxWidth: labelMaxWidth,
           padding: `${padY}px ${padX}px`,
           border: `${border}px solid ${color}`,
           borderRadius: 3 / zoom,
-          background: 'rgba(247, 245, 241, 0.95)',
+          background: 'rgba(247, 245, 241, 0.97)',
           color: C.ink,
           fontFamily: FONT,
           fontSize,
           fontWeight: 500,
-          lineHeight: 1.25,
+          lineHeight: 1.3,
           letterSpacing: '0.01em',
-          whiteSpace: 'nowrap',
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
         }}
       >
         {spec.text}

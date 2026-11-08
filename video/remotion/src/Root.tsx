@@ -1,6 +1,7 @@
 import React from 'react';
 import {Composition} from 'remotion';
 import {Promo, type PromoProps} from './Promo';
+import {TOTAL_FRAMES} from './timeline';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -8,7 +9,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="Promo105"
         component={Promo}
-        durationInFrames={3150}
+        durationInFrames={TOTAL_FRAMES}
         fps={30}
         width={1920}
         height={1080}
@@ -17,7 +18,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="Promo105-NoSubs"
         component={Promo}
-        durationInFrames={3150}
+        durationInFrames={TOTAL_FRAMES}
         fps={30}
         width={1920}
         height={1080}

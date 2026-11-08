@@ -1,5 +1,6 @@
 import React from 'react';
 import {Easing, interpolate, useCurrentFrame} from 'remotion';
+import audioManifest from '../audio-manifest.json';
 import {C, FONT} from '../theme';
 
 const EASE = Easing.bezier(0.22, 0.61, 0.36, 1);
@@ -106,6 +107,20 @@ export const EndCard: React.FC = () => {
         }}
       >
         演示素材：宁波诺丁汉大学公开活动页（真实）· 群聊（自拟）· 抓取 2026-11-08
+      </div>
+
+      <div
+        style={{
+          marginTop: 8,
+          maxWidth: 1320,
+          fontSize: 12.5,
+          lineHeight: 1.6,
+          color: C.faint,
+          textAlign: 'center',
+          letterSpacing: '0.02em',
+        }}
+      >
+        {audioManifest.attribution}
       </div>
     </div>
   );

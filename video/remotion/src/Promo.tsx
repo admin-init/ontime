@@ -1,16 +1,10 @@
 import React from 'react';
-import {
-  Audio,
-  Sequence,
-  interpolate,
-  staticFile,
-  useVideoConfig,
-} from 'remotion';
+import {Sequence} from 'remotion';
 import {PaperFill, TopBar} from './components/Chrome';
 import {MediaShot} from './components/MediaShot';
+import {Soundtrack} from './components/Soundtrack';
 import {Subtitles} from './components/Subtitles';
 import {SHOTS} from './timeline';
-import bgmManifest from './bgm-manifest.json';
 import {Concept} from './scenes/Concept';
 import {DualValue} from './scenes/DualValue';
 import {EndCard} from './scenes/EndCard';
@@ -18,6 +12,7 @@ import {ExportCard} from './scenes/ExportCard';
 import {Opening} from './scenes/Opening';
 import {Statement} from './scenes/Statement';
 import {Thesis1, Thesis2} from './scenes/Thesis';
+import {TitleCard} from './scenes/TitleCard';
 
 export type PromoProps = {
   showSubtitles: boolean;
@@ -25,6 +20,8 @@ export type PromoProps = {
 
 const ShotBody: React.FC<{shot: (typeof SHOTS)[number]}> = ({shot}) => {
   switch (shot.kind) {
+    case 'title':
+      return <TitleCard />;
     case 'ui':
     case 'still':
       return <MediaShot shot={shot} />;
@@ -48,29 +45,24 @@ const ShotBody: React.FC<{shot: (typeof SHOTS)[number]}> = ({shot}) => {
 };
 
 export const Promo: React.FC<PromoProps> = ({showSubtitles}) => {
-  const {durationInFrames} = useVideoConfig();
   const opening = SHOTS.filter((s) => s.kind === 'open');
+  const openingStart = opening.length
+    ? Math.round(opening[0].start * 30)
+    : 90;
   const openingEnd = opening.length
     ? Math.round(opening[opening.length - 1].end * 30)
-    : 300;
+    : 390;
 
   return (
     <PaperFill>
-      {bgmManifest.exists ? (
-        <Audio
-          src={staticFile(bgmManifest.path)}
-          loop
-          volume={(f) =>
-            interpolate(
-              f,
-              [durationInFrames - 60, durationInFrames],
-              [0.3, 0],
-              {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
-            )
-          }
-        />
-      ) : null}
-      <Sequence from={0} durationInFrames={openingEnd} name="opening" layout="none">
+      <Soundtrack />
+
+      <Sequence
+        from={openingStart}
+        durationInFrames={openingEnd - openingStart}
+        name="opening"
+        layout="none"
+      >
         <Opening />
       </Sequence>
 

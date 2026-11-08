@@ -29,6 +29,7 @@ type Base = {
 };
 
 export type Shot =
+  | (Base & {kind: 'title'})
   | (Base & {kind: 'open'})
   | (Base & {kind: 'thesis1'})
   | (Base & {kind: 'thesis2'})
@@ -53,7 +54,7 @@ export type Shot =
   | (Base & {kind: 'concept'})
   | (Base & {kind: 'end'});
 
-export const SHOTS: Shot[] = [
+const BASE_SHOTS: Shot[] = [
   {
     id: 's1',
     kind: 'open',
@@ -576,3 +577,26 @@ export const SHOTS: Shot[] = [
     hideBar: true,
   },
 ];
+
+export const TITLE_SECONDS = 3;
+const TITLE_FRAMES = Math.round(TITLE_SECONDS * 30);
+
+export const SHOTS: Shot[] = [
+  {
+    id: 'title',
+    kind: 'title',
+    start: 0,
+    end: TITLE_SECONDS,
+    label: '',
+    hideBar: true,
+  },
+  ...BASE_SHOTS.map((shot) => ({
+    ...shot,
+    start: Number((shot.start + TITLE_SECONDS).toFixed(3)),
+    end: Number((shot.end + TITLE_SECONDS).toFixed(3)),
+  })),
+];
+
+export const TOTAL_FRAMES = Math.round((105 + TITLE_SECONDS) * 30);
+export {TITLE_FRAMES};
+

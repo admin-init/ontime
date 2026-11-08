@@ -1,8 +1,8 @@
-# 到点 · 105 秒宣传片（Remotion）
+# 到点 · 108 秒宣传片（Remotion）
 
 版本：v1 草稿｜2026-11-08｜分支 `feat/video`
 
-成片：`video/out/promo-105s.mp4`（1920×1080 / 30fps / 3150 帧 / 105.0s / 约 21 MB / 当前无音轨）
+成片：`video/out/promo-105s-v2.mp4`（1920×1080 / 30fps / 3240 帧 / 108.0s / H.264 + AAC）
 字幕：`video/subtitles/promo.zh.srt`（29 条，UTF-8 无 BOM，同时烧进画面）
 素材：只使用 `recordings/_trial/` 的试片与 `fixtures/demo/unnc_*.png`，没有重新录制，没有改 `frontend/` 或 `backend/`。
 
@@ -31,11 +31,11 @@ npm run captions
 
 # 3) 渲染带字幕版
 npm run render
-# 输出：video/out/promo-105s.mp4
+# 输出：video/out/promo-105s-v2.mp4
 
 # 无字幕版（同一个时间线，showSubtitles=false）
 npm run render:nosubs
-# 输出：video/out/promo-105s-nosubs.mp4
+# 输出：video/out/promo-105s-v2-nosubs.mp4
 
 # 预览单帧
 npm run still
@@ -44,49 +44,53 @@ npm run still
 `npm run render` 的等效命令：
 
 ```powershell
-npx remotion render Promo105 ../out/promo-105s.mp4 `
+npm run prepare-audio
+npx remotion render Promo105 ../out/promo-105s-v2.mp4 `
   --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4
 ```
 
-参数：1920×1080、30fps、3150 帧、H.264 / yuv420p、CRF 20、无音轨（除非挂 BGM）。草稿体积约 21–22 MB。
+参数：1920×1080、30fps、3240 帧、H.264 / yuv420p、CRF 20、AAC 音轨。v2 约 27 MB；`promo-105s-v1.mp4` 是上一版 105s 有声版，`promo-105s-silent.mp4` 是无声版。
 
-## 3. BGM（可选，不阻塞）
+## 3. 声音
 
-BGM 由主控另派。工程已经预留：
+主片用 `video/assets/bgm/bgm-main.mp3`（Kevin MacLeod《Continue Life》，CC BY 4.0，114.024s，-20 LUFS）。`bgm-alt.mp3` 备用，本轮未用。
 
-1. 把 `bgm.mp3` 放到 `video/assets/bgm/`（或直接放 `video/remotion/public/bgm.mp3`）；
-2. 在 `video/remotion/` 运行 `npm run bgm`（会复制到 `public/bgm.mp3` 并打开开关）；
-3. 再运行 `npm run render`。
-
-挂上后音量 0.30，循环，最后 2 秒淡出。没有文件时 `src/bgm-manifest.json` 为 `exists: false`，渲染完全无声。BGM 文件不入库（`video/assets/bgm/*.mp3`、`public/bgm.mp3` 已忽略）。
+- BGM 在片子 **0:12** 进（标题卡 0–3s + 痛点段留白），读取音轨 0:09；0.5s 淡入、最后 2s 淡出、音量 0.30。
+- `whoosh-transition.mp3` 用在 **21s / 43s / 65s** 三个关键转场，音量 0.12，提前 1.1s 起，峰值落在切点上。
+- `npm run prepare-audio` 会把音频复制到 `public/audio/` 并写 `src/audio-manifest.json`；`npm run render` 会自动先跑它。
+- 片尾能力声明下方已加署名：`Music: "Continue Life" — Kevin MacLeod (incompetech.com), CC BY 4.0`。
+- BGM/SFX 文件不入库（`assets/bgm/*.mp3`、`assets/sfx/*.mp3`、`public/audio/` 已忽略）。
 
 ## 4. 工程结构
 
 ```
 video/remotion/
   src/
-    Promo.tsx            总时间线 + 全局字幕/顶栏
+    Promo.tsx            总时间线 + 全局字幕/顶栏/声音
     timeline.ts          28 个镜头的起止、素材、倍率、推近、标注（开场 3 段合成 10s）
     captions.json        29 条字幕（秒）
+    audio-manifest.json  BGM 入点/音量/淡入淡出、3 个 whoosh 落点、片尾署名
     theme.ts             纸底/墨色/品牌绿/冲突色、1920×1080 画布
     components/
       Chrome.tsx         顶部「到点 / 镜头名 / 实机标签」与外框
       MediaShot.tsx      录屏/静帧 + scale/translate 推近 + 标注层
       Callout.tsx        细线框 + 13px 说明（上下左右四个方向）
       Subtitles.tsx      烧录字幕（可开关）
+      Soundtrack.tsx     BGM + whoosh
     scenes/              开场、主张、双值对照、原则卡、导出卡、规划图、片尾
   scripts/
     prepare-media.mjs    复制素材 / ffmpeg 变速切片 / 抽静帧 / 生成清单
+    prepare-audio.mjs    复制 BGM/SFX / 写 audio-manifest
     build-srt.mjs        captions.json → video/subtitles/promo.zh.srt
-    check-bgm.mjs        可选 BGM 开关
   public/media/          生成物，已忽略，不入库
+  public/audio/          生成物，已忽略，不入库
 ```
 
 `src/timeline.ts` 是这一版剪辑的唯一时间线源。改镜头时长/倍率/推近/标注，只改这里；字幕在 `src/captions.json`，改完跑 `npm run captions`。
 
 ## 5. 素材映射
 
-变速切片由 `prepare-media.mjs` 用 ffmpeg 预切，Remotion 里按 1× 播放，保证帧数与 shot 时长一致；最后一帧 PNG 作为兜底，避免片段比 shot 短时黑帧。
+v2 在片头加 3s 标题卡，下表时间整体 +3s；镜头/倍率不变。变速切片由 `prepare-media.mjs` 用 ffmpeg 预切，Remotion 里按 1× 播放，保证帧数与 shot 时长一致；最后一帧 PNG 作为兜底，避免片段比 shot 短时黑帧。
 
 | 镜头 ID | 成片时间 | 素材 | 源入–出 | 倍率 | 片段时长 | 用途 |
 |---|---|---|---|---|---|---|
@@ -118,7 +122,7 @@ video/remotion/
 - UI 素材框：1500×937.5，居中（左边距 210，上边距 44），细边框 + 阴影；推近在框内裁切。
 - 推近：`scale + translate`，`Easing.bezier(0.33, 0, 0.2, 1)`，倍率 1.35–1.75；没有花哨转场。
 - 标注：1.15px 细线框（随缩放反算，屏幕上恒为 1px）+ 13px 说明；上下左右四个方向，优先放在内容列外侧，避免压字。
-- 字幕：34px、行高 1.38、深色 80% 底、圆角 8、底部居中；`Promo105-NoSubs` 可关闭。
+- 字幕：30px、行高 1.35、深色 80% 底、圆角 8、底部 216px（画面高度 20%）；`Promo105-NoSubs` 可关闭。
 - 顶栏：左「到点 / 镜头名」，右「真实耗时或说明 + 实机/入口/规划/真实文件标签」。标签是编辑信息，不属于 App UI。
 
 ## 7. 已知边界（片子里已如实处理）
@@ -141,8 +145,8 @@ npx tsc --noEmit
 # 校验成片
 ffprobe -v error -show_entries format=duration,size `
   -show_entries stream=width,height,r_frame_rate,nb_frames `
-  -of default=noprint_wrappers=1 ..\out\promo-105s.mp4
-# 期望：1920x1080 / 30fps / 3150 帧 / 105.000s
+  -of default=noprint_wrappers=1 ..\out\promo-105s-v2.mp4
+# 期望：1920x1080 / 30fps / 3240 帧 / 108.000s
 ```
 
 `video/out/`、`video/remotion/public/media/`、`node_modules/` 都已忽略；仓库只提交工程、脚本、字幕与说明。

@@ -1,0 +1,39 @@
+{
+  "bgm": {
+    "file": "audio/bgm-main.mp3",
+    "exists": true,
+    "inPoint": 12,
+    "sourceIn": 9,
+    "volume": 0.3,
+    "fadeIn": 0.5,
+    "fadeOut": 2,
+    "trackDuration": 114.024
+  },
+  "sfx": [
+    {
+      "file": "audio/whoosh-transition.mp3",
+      "exists": true,
+      "at": 21,
+      "lead": 1.1,
+      "volume": 0.12,
+      "duration": 1.34
+    },
+    {
+      "file": "audio/whoosh-transition.mp3",
+      "exists": true,
+      "at": 43,
+      "lead": 1.1,
+      "volume": 0.12,
+      "duration": 1.34
+    },
+    {
+      "file": "audio/whoosh-transition.mp3",
+      "exists": true,
+      "at": 65,
+      "lead": 1.1,
+      "volume": 0.12,
+      "duration": 1.34
+    }
+  ],
+  "attribution": "Music: \"Continue Life\" — Kevin MacLeod (incompetech.com), CC BY 4.0"
+}

@@ -331,9 +331,9 @@ export const Opening: React.FC = () => {
 
       <Card
         left={760}
-        top={620}
+        top={410}
         width={430}
-        height={360}
+        height={340}
         rotate={-1.0}
         label="日历（示意）"
         index={2}
@@ -363,12 +363,10 @@ export const Opening: React.FC = () => {
           >
             <path d="M 735 400 L 862 478" />
             <path d="M 1185 400 L 1058 478" />
-            <path d="M 975 610 L 975 552" />
           </g>
           <g fill={C.brand} opacity={0.55}>
             <circle cx={862} cy={478} r={2.6} />
             <circle cx={1058} cy={478} r={2.6} />
-            <circle cx={975} cy={552} r={2.6} />
           </g>
         </svg>
       </div>

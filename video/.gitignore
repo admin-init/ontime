@@ -6,3 +6,4 @@ out/
 *.mov
 *.mkv
 assets/bgm/*.mp3
+assets/sfx/*.mp3
