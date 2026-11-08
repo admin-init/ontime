@@ -721,6 +721,64 @@ function jobView(job) {
       error: null,
     }
   }
+  // 站点 Agent 调研：按契约 v1.2 形状返回（run → parse → done），约 8 次轮询后完成
+  if (job.type === 'research') {
+    const p = job.polls
+    const done = p >= 8
+    const steps = [
+      { key: 'run', label: '在隔离环境中调研站点', state: done || p >= 6 ? 'done' : 'active' },
+      { key: 'parse', label: '校验并整理条目', state: done ? 'done' : p >= 6 ? 'active' : 'todo' },
+      { key: 'done', label: '完成', state: done ? 'done' : 'todo' },
+    ]
+    const messages = ['正在隔离环境中调研站点…', '正在校验并整理条目…', '调研完成']
+    const index = done ? 2 : p >= 6 ? 1 : 0
+    return {
+      id: job.id,
+      state: done ? 'done' : 'running',
+      stage: { stage: steps[index].key, steps, message: messages[index] },
+      result: done
+        ? {
+            mode: 'agent',
+            items: [
+              {
+                title: '通知公告',
+                url: 'https://cs.example.edu.cn/notice.htm',
+                snippet: '学院官方通知栏目，最近 30 条，更新频繁',
+              },
+              {
+                title: '学术活动',
+                url: 'https://cs.example.edu.cn/activity.htm',
+                snippet: '讲座、论坛与学术报告预告',
+              },
+              {
+                title: '招聘信息',
+                url: 'https://cs.example.edu.cn/career.htm',
+                snippet: '校企合作与校园招聘公告',
+              },
+              {
+                title: '评奖评优公示',
+                url: 'https://cs.example.edu.cn/awards.htm',
+                snippet: '奖学金与荣誉公示，多有截止时间',
+              },
+              {
+                title: '会议安排',
+                url: 'https://cs.example.edu.cn/meetings.htm',
+                snippet: '院务会议与教职工安排',
+              },
+            ],
+            profile: {
+              list_url: 'https://cs.example.edu.cn/notice.htm',
+              item_selector: 'ul.notice-list > li',
+              title_selector: 'li a.title',
+              content_selector: 'li div.summary',
+            },
+            elapsed_ms: 42310,
+            model: '布局检查数据（非真实模型输出）',
+          }
+        : null,
+      error: null,
+    }
+  }
   const done = job.polls >= 3
   return {
     id: job.id,
@@ -766,6 +824,8 @@ const server = http.createServer((req, res) => {
         { key: 'crawl', name: '官网定时抓取', level: 'verified', note: '已实测：抓取你填写的公开列表页并逐篇读正文' },
         { key: 'site', name: '自定义站点检索', level: 'verified', note: '已实测：只在你声明的站点域名内限定检索' },
         { key: 'reminder', name: '到点提醒', level: 'verified', note: '已实测：按任务截止时间提前 2 小时提醒' },
+        { key: 'site_agent', name: '站点 Agent 调研', level: 'verified', note: '已实现：真实访问站点整理候选栏目与解析规则建议' },
+        { key: 'api_source', name: 'API 订阅源', level: 'unverified', note: '已实现：登记 API 地址与密钥；缺真实接口，尚未验证' },
         { key: 'imap', name: '邮箱 IMAP 拉取', level: 'unverified', note: '已实现只读拉取；缺真实账号，尚未验证' },
         { key: 'push', name: '多渠道推送', level: 'entry', note: '演示暂未接入，仅保留入口' },
       ],
@@ -983,8 +1043,31 @@ const server = http.createServer((req, res) => {
       domain: 'lib.example.edu.cn',
       list_url: 'https://lib.example.edu.cn/activity.htm',
       search_url: 'https://lib.example.edu.cn/search?q={q}',
+      kind: 'web',
+      api_url: null,
+      item_selector: 'ul.activity-list li',
+      title_selector: 'li a.title',
+      content_selector: 'li div.summary',
+      profile_source: 'agent',
+      verified: true,
       enabled: true,
       created_at: fromNow(-3 * 24 * HOUR),
+    },
+    {
+      id: 'site_api_1',
+      name: '教务处通知接口',
+      domain: 'jw.example.edu.cn',
+      list_url: null,
+      search_url: null,
+      kind: 'api',
+      api_url: 'https://jw.example.edu.cn/api/v1/notices',
+      item_selector: null,
+      title_selector: null,
+      content_selector: null,
+      profile_source: null,
+      verified: false,
+      enabled: true,
+      created_at: fromNow(-1 * HOUR),
     },
   ]
 
@@ -1090,17 +1173,38 @@ const server = http.createServer((req, res) => {
   if (path === '/api/sites' && method === 'GET') {
     return json(res, 200, { items: sites })
   }
+  if (path === '/api/sites/research' && method === 'POST') {
+    // 布局检查：忽略请求体，直接给一个带三段进度的调研 job
+    req.on('data', () => {})
+    req.on('end', () => {
+      const job = { id: `job_research_${Date.now()}`, type: 'research', polls: 0 }
+      jobs.set(job.id, job)
+      json(res, 200, { job_id: job.id })
+    })
+    return
+  }
+
   if (path === '/api/sites' && method === 'POST') {
     let body = ''
     req.on('data', (c) => (body += c))
     req.on('end', () => {
       const b = JSON.parse(body || '{}')
+      const selectors = {
+        item_selector: typeof b.item_selector === 'string' && b.item_selector ? b.item_selector : null,
+        title_selector: typeof b.title_selector === 'string' && b.title_selector ? b.title_selector : null,
+        content_selector: typeof b.content_selector === 'string' && b.content_selector ? b.content_selector : null,
+      }
       const s = {
         id: `site_${Date.now()}`,
         name: b.name ?? '未命名站点',
         domain: b.domain ?? '',
         list_url: b.list_url ?? null,
         search_url: b.search_url ?? null,
+        kind: b.kind === 'api' ? 'api' : 'web',
+        api_url: b.api_url ?? null,
+        ...selectors,
+        profile_source: b.profile_source ?? (Object.values(selectors).some(Boolean) ? 'manual' : null),
+        verified: false,
         enabled: true,
         created_at: fromNow(0),
       }
@@ -1114,6 +1218,26 @@ const server = http.createServer((req, res) => {
     const i = sites.findIndex((x) => x.id === siteMatch[1])
     if (i >= 0) sites.splice(i, 1)
     return json(res, 200, { ok: true })
+  }
+  if (siteMatch && method === 'PATCH') {
+    let body = ''
+    req.on('data', (c) => (body += c))
+    req.on('end', () => {
+      const s = sites.find((x) => x.id === siteMatch[1])
+      if (!s) return json(res, 404, { detail: '站点不存在' })
+      const b = JSON.parse(body || '{}')
+      for (const f of ('list_url,search_url,api_url,item_selector,title_selector,content_selector').split(',')) {
+        if (f in b) s[f] = b[f] ?? null
+      }
+      if (b.kind === 'web' || b.kind === 'api') s.kind = b.kind
+      if ('profile_source' in b) {
+        s.profile_source = b.profile_source ?? null
+      } else if ('item_selector' in b || 'title_selector' in b || 'content_selector' in b) {
+        s.profile_source = s.profile_source || 'manual'
+      }
+      json(res, 200, s)
+    })
+    return
   }
 
   if (path === '/api/mail/import' && method === 'POST') {

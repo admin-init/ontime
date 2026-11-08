@@ -2185,6 +2185,142 @@ textarea {
   font-size: 13px;
 }
 
+/* ---------- 阶段二：站点 Agent 调研 / API 源 ---------- */
+
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.seg-btn {
+  padding: 3px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.seg-btn.is-on {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(32, 32, 30, 0.05);
+}
+
+.seg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.kind-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 40px;
+}
+
+.input:disabled {
+  background: var(--paper);
+  color: var(--ink-3);
+}
+
+.research-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.research-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.research-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.research-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.research-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--brand);
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.research-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.research-profile-head > span:first-child {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.research-profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.research-profile-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.research-profile-value {
+  font-family: ui-monospace, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.research-profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.research-profile-actions .input {
+  flex: 1;
+  min-width: 220px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
 /* ============================================================
    窄屏
    ============================================================ */

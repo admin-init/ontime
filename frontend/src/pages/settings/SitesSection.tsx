@@ -1,19 +1,24 @@
 import { useState } from 'react'
-import { createSite, deleteSite, getSites, type Site } from '../../api'
-import { ErrorBox, LoadingRow } from '../../components/bits'
+import { createSite, deleteSite, getSites, type Site, type SiteKind } from '../../api'
+import { Badge, ErrorBox, LoadingRow } from '../../components/bits'
 import { useLoad } from '../../hooks'
+import SiteResearchPanel from './SiteResearchPanel'
 
 export default function SitesSection() {
   const { data, error, loading, refresh } = useLoad(() => getSites())
   const [name, setName] = useState('')
   const [domain, setDomain] = useState('')
+  const [kind, setKind] = useState<SiteKind>('web')
   const [listUrl, setListUrl] = useState('')
   const [searchUrl, setSearchUrl] = useState('')
+  const [apiUrl, setApiUrl] = useState('')
+  const [apiKey, setApiKey] = useState('')
   const [adding, setAdding] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [confirmId, setConfirmId] = useState<string | null>(null)
 
   const items = data?.items ?? []
+  const isApi = kind === 'api'
 
   async function onAdd() {
     if (adding) return
@@ -22,19 +27,29 @@ export default function SitesSection() {
       setActionError('域名格式不对，填主站域名即可，如 lib.example.edu.cn')
       return
     }
+    if (isApi && !/^https?:\/\//i.test(apiUrl.trim())) {
+      setActionError('API 地址需要以 http:// 或 https:// 开头')
+      return
+    }
     setAdding(true)
     setActionError(null)
     try {
       await createSite({
         name: name.trim(),
         domain: domain.trim(),
-        list_url: listUrl.trim() || undefined,
-        search_url: searchUrl.trim() || undefined,
+        ...(isApi
+          ? { kind: 'api' as const, api_url: apiUrl.trim(), api_key: apiKey || undefined }
+          : {
+              list_url: listUrl.trim() || undefined,
+              search_url: searchUrl.trim() || undefined,
+            }),
       })
       setName('')
       setDomain('')
       setListUrl('')
       setSearchUrl('')
+      setApiUrl('')
+      setApiKey('')
       await refresh()
     } catch (e) {
       setActionError((e as Error).message)
@@ -74,40 +89,60 @@ export default function SitesSection() {
 
       {items.length > 0 && (
         <ul className="src-list">
-          {items.map((s) => (
-            <li key={s.id} className="src-item">
-              <div className="src-main">
-                <div className="src-title">
-                  <span className="src-name">{s.name}</span>
-                  <span className="src-domain">{s.domain}</span>
+          {items.map((s) => {
+            const api = (s.kind ?? 'web') === 'api'
+            return (
+              <li key={s.id} className="src-item">
+                <div className="src-main">
+                  <div className="src-title">
+                    <span className="src-name">{s.name}</span>
+                    {api && <Badge tone="neutral">API</Badge>}
+                    {s.verified === true ? (
+                      <Badge tone="success">已验证</Badge>
+                    ) : api || s.verified === false ? (
+                      <Badge tone="warn">未验证</Badge>
+                    ) : null}
+                    {s.profile_source === 'agent' && <Badge tone="accent">Agent 建议</Badge>}
+                    {s.profile_source === 'manual' && <Badge tone="muted">手动规则</Badge>}
+                  </div>
+                  <div className="src-sub">
+                    {api ? (
+                      s.api_url ? (
+                        <span className="src-url">API 地址 {s.api_url}</span>
+                      ) : (
+                        <span className="meta">未填 API 地址</span>
+                      )
+                    ) : (
+                      <>
+                        {s.list_url ? (
+                          <span className="src-url">列表页 {s.list_url}</span>
+                        ) : (
+                          <span className="meta">未填列表页</span>
+                        )}
+                        {s.search_url && <span className="src-url">搜索 {s.search_url}</span>}
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="src-sub">
-                  {s.list_url ? (
-                    <span className="src-url">列表页 {s.list_url}</span>
+                <div className="src-actions">
+                  {confirmId === s.id ? (
+                    <>
+                      <button className="text-btn is-danger" onClick={() => void onDelete(s)}>
+                        确认删除
+                      </button>
+                      <button className="text-btn" onClick={() => setConfirmId(null)}>
+                        取消
+                      </button>
+                    </>
                   ) : (
-                    <span className="meta">未填列表页</span>
+                    <button className="text-btn" onClick={() => setConfirmId(s.id)}>
+                      删除
+                    </button>
                   )}
-                  {s.search_url && <span className="src-url">搜索 {s.search_url}</span>}
                 </div>
-              </div>
-              <div className="src-actions">
-                {confirmId === s.id ? (
-                  <>
-                    <button className="text-btn is-danger" onClick={() => void onDelete(s)}>
-                      确认删除
-                    </button>
-                    <button className="text-btn" onClick={() => setConfirmId(null)}>
-                      取消
-                    </button>
-                  </>
-                ) : (
-                  <button className="text-btn" onClick={() => setConfirmId(s.id)}>
-                    删除
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
 
@@ -128,21 +163,67 @@ export default function SitesSection() {
           />
         </div>
         <div className="add-grid">
-          <input
-            className="input"
-            placeholder="列表页地址（可选）"
-            value={listUrl}
-            onChange={(e) => setListUrl(e.target.value)}
-          />
-          <input
-            className="input"
-            placeholder="搜索地址（可选，如 https://…/search?q={q}）"
-            value={searchUrl}
-            onChange={(e) => setSearchUrl(e.target.value)}
-          />
+          <div className="kind-row">
+            <div className="seg" role="group" aria-label="源类型">
+              <button
+                type="button"
+                className={`seg-btn${kind === 'web' ? ' is-on' : ''}`}
+                disabled={adding}
+                onClick={() => setKind('web')}
+              >
+                网页
+              </button>
+              <button
+                type="button"
+                className={`seg-btn${kind === 'api' ? ' is-on' : ''}`}
+                disabled={adding}
+                onClick={() => setKind('api')}
+              >
+                API
+              </button>
+            </div>
+            <span className="meta">{isApi ? '公开 API：登记接口地址，定时拉取' : '普通网页：填列表页做定时同步'}</span>
+          </div>
         </div>
+        {isApi ? (
+          <div className="add-grid">
+            <input
+              className="input"
+              placeholder="API 地址，https://…/api/notices"
+              value={apiUrl}
+              onChange={(e) => setApiUrl(e.target.value)}
+            />
+            <input
+              className="input"
+              type="password"
+              autoComplete="new-password"
+              placeholder="API Key（只提交一次）"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+            />
+          </div>
+        ) : (
+          <div className="add-grid">
+            <input
+              className="input"
+              placeholder="列表页地址（可选）"
+              value={listUrl}
+              onChange={(e) => setListUrl(e.target.value)}
+            />
+            <input
+              className="input"
+              placeholder="搜索地址（可选，如 https://…/search?q={q}）"
+              value={searchUrl}
+              onChange={(e) => setSearchUrl(e.target.value)}
+            />
+          </div>
+        )}
         <div className="form-foot">
-          <span className="meta">列表页地址可一键转为官网栏目定时同步；搜索地址用于核实时限定站点。</span>
+          <span className="meta">
+            {isApi
+              ? 'API Key 只在提交时发送一次、只存本机后端，页面不显示也不可再查看；登记后先标记「未验证」，真正拉通一次才变已验证。'
+              : '列表页地址可一键转为官网栏目定时同步；搜索地址用于核实时限定站点。'}
+          </span>
           <button
             className="btn btn-primary btn-sm"
             disabled={adding || !name.trim() || !domain.trim()}
@@ -152,6 +233,8 @@ export default function SitesSection() {
           </button>
         </div>
       </div>
+
+      <SiteResearchPanel sites={items} onChanged={() => void refresh()} />
     </section>
   )
 }

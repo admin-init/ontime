@@ -1,6 +1,6 @@
 // ------------------------------------------------------------------
-// 唯一请求封装。类型按 docs/API契约_v1.md（冻结）与 docs/API契约_v1.1_阶段一.md
-// 手写，字段以契约为准。
+// 唯一请求封装。类型按 docs/API契约_v1.md（冻结）、docs/API契约_v1.1_阶段一.md
+// 与 docs/API契约_v1.2_阶段二.md 手写（v1.2 在主仓库 docs/，本工作树未带）。
 // ------------------------------------------------------------------
 
 export type ClaimStatus =
@@ -345,6 +345,9 @@ export function icsUrl(id: string) {
 
 export type WatchStatus = 'never' | 'ok' | 'partial' | 'failed'
 
+/** v1.2：自定义站点类型——普通网页 / 公开 API */
+export type SiteKind = 'web' | 'api'
+
 export type WatchTarget = {
   id: string
   name: string
@@ -378,6 +381,18 @@ export type Site = {
   search_url: string | null
   enabled: boolean
   created_at: string
+  /** v1.2：源类型（网页 / API），缺省按网页处理 */
+  kind?: SiteKind | null
+  /** v1.2：kind = api 时的接口地址 */
+  api_url?: string | null
+  /** v1.2：解析规则（列表项 / 标题 / 正文的 CSS 选择器） */
+  item_selector?: string | null
+  title_selector?: string | null
+  content_selector?: string | null
+  /** v1.2：解析规则来源——agent（建议后由用户确认）/ manual（手动） */
+  profile_source?: 'agent' | 'manual' | null
+  /** v1.2：是否已实测拉通；API 源登记后默认未验证 */
+  verified?: boolean | null
 }
 
 export type MailImport = {
@@ -442,7 +457,18 @@ export function getSites() {
   return request<{ items: Site[] }>('/api/sites')
 }
 
-export function createSite(body: { name: string; domain: string; list_url?: string; search_url?: string }) {
+export function createSite(body: {
+  name: string
+  domain: string
+  list_url?: string
+  search_url?: string
+  /** v1.2：源类型（网页 / API），缺省网页 */
+  kind?: SiteKind
+  /** v1.2：kind = api 时的接口地址 */
+  api_url?: string
+  /** v1.2：只在创建时提交一次，本机后端保存，页面不再读取/显示 */
+  api_key?: string
+}) {
   return request<Site>('/api/sites', {
     method: 'POST',
     headers: JSON_HEADERS,
@@ -506,4 +532,110 @@ export function syncReminders() {
 
 export function dismissReminder(id: string) {
   return request<{ ok: boolean }>(`/api/reminders/${encodeURIComponent(id)}/dismiss`, { method: 'POST' })
+}
+
+// ------------------------------------------------------------------
+// 阶段二（契约 v1.2）：站点 Agent 调研 / API 源
+// 契约：docs/API契约_v1.2_阶段二.md（主仓库 ontime 已入库）。
+// Site 上的 v1.2 字段保持可选，旧后端缺字段时 UI 缺省降级。
+// ------------------------------------------------------------------
+
+/** 契约 v1.2 ResearchItem：snippet 为页面上与该条目有关的原文片段。 */
+export type ResearchItem = {
+  title: string
+  url: string
+  snippet: string | null
+}
+
+/** 契约 v1.2 SiteProfile：一键写入站点的解析规则建议。 */
+export type SiteProfile = {
+  list_url: string | null
+  item_selector: string | null
+  title_selector: string | null
+  content_selector: string | null
+}
+
+/** 宽容解析后的调研结果（来自 GET /api/jobs/{id} 的 result）。 */
+export type ResearchParsed = {
+  items: ResearchItem[]
+  profile: SiteProfile | null
+  error: string | null
+  elapsedMs: number | null
+  model: string | null
+}
+
+/** 契约 v1.2 SitePatch 的前端用到的子集；字段缺省表示不动。 */
+export type SitePatchBody = {
+  list_url?: string | null
+  item_selector?: string | null
+  title_selector?: string | null
+  content_selector?: string | null
+  profile_source?: 'agent' | 'manual' | null
+}
+
+/** 写解析规则等：PATCH /api/sites/{id}，返回更新后的 Site。 */
+export function patchSite(id: string, body: SitePatchBody) {
+  return request<Site>(`/api/sites/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+}
+
+/** 用 Agent 调研站点：POST 后轮询 /api/jobs/{id}（type=site_research）。 */
+export function researchSite(body: { url: string; task?: string; site_id?: string }) {
+  return request<{ job_id: string }>('/api/sites/research', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+}
+
+/** 宽容解析调研结果：items 最多取 8 条，缺 url 或非 http(s) 的条目丢弃。 */
+export function parseResearchResult(raw: unknown): ResearchParsed {
+  const out: ResearchParsed = { items: [], profile: null, error: null, elapsedMs: null, model: null }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out
+  const r = raw as Record<string, unknown>
+  if (typeof r.error === 'string' && r.error) out.error = r.error
+  if (typeof r.elapsed_ms === 'number') out.elapsedMs = r.elapsed_ms
+  if (typeof r.model === 'string' && r.model) out.model = r.model
+  if (Array.isArray(r.items)) {
+    for (const item of r.items.slice(0, 8)) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+      const c = item as Record<string, unknown>
+      const url = typeof c.url === 'string' && /^https?:\/\//i.test(c.url) ? c.url : null
+      if (!url) continue
+      out.items.push({
+        title: typeof c.title === 'string' && c.title ? c.title : url,
+        url,
+        snippet: typeof c.snippet === 'string' && c.snippet ? c.snippet : null,
+      })
+    }
+  }
+  if (r.profile && typeof r.profile === 'object' && !Array.isArray(r.profile)) {
+    const p = r.profile as Record<string, unknown>
+    const str = (v: unknown) => (typeof v === 'string' && v ? v : null)
+    out.profile = {
+      list_url: str(p.list_url),
+      item_selector: str(p.item_selector),
+      title_selector: str(p.title_selector),
+      content_selector: str(p.content_selector),
+    }
+    // 没有任何具体规则的 profile 不算建议
+    if (!out.profile.list_url && !out.profile.item_selector && !out.profile.title_selector && !out.profile.content_selector) {
+      out.profile = null
+    }
+  }
+  return out
+}
+
+/** 失败文案：优先 job.error，其次 job.result.error（契约 v1.2：失败时如实返回），兜底通用文案。 */
+export function jobErrorMessage(job: JobData): string {
+  if (job.error) return job.error
+  const r = job.result
+  if (r && typeof r === 'object' && !Array.isArray(r)) {
+    const err = (r as Record<string, unknown>).error
+    if (typeof err === 'string' && err) return err
+  }
+  return '调研失败，请稍后重试'
 }
