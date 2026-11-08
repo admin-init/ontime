@@ -3,11 +3,12 @@ import type { ReactNode } from 'react'
 const STATUS_TEXT: Record<string, string> = {
   supported: '已支持',
   user_confirmed: '已确认',
-  conflict: '冲突',
-  needs_anchor: '缺日期依据',
+  conflict: '有冲突',
+  needs_anchor: '待补日期',
   unconfirmed: '未确认',
   insufficient: '信息不足',
   rejected: '已拒绝',
+  merged: '已并入其他事件',
 }
 
 export function statusText(status: string): string {
@@ -15,24 +16,23 @@ export function statusText(status: string): string {
 }
 
 export function StatusDot({ status }: { status: string }) {
-  return <span className={`dot dot-${status}`} title={statusText(status)} />
+  return <span className={`status-dot dot-${status}`} aria-hidden />
 }
 
-type Tone = 'success' | 'warning' | 'danger' | 'neutral' | 'info' | 'gray'
+/** 6px 状态点 + 12px 文案，字段行、历史、规则共用。 */
+export function StatusMark({ status, label }: { status: string; label?: string }) {
+  return (
+    <span className={`status-mark status-${status}`}>
+      <StatusDot status={status} />
+      <span>{label ?? statusText(status)}</span>
+    </span>
+  )
+}
+
+type Tone = 'neutral' | 'accent' | 'warn' | 'success' | 'muted'
 
 export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
   return <span className={`badge badge-${tone}`}>{children}</span>
-}
-
-function EmptySvg() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>
-      <rect x="6.75" y="10.75" width="26.5" height="20.5" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M6 17.5h8.5a3 3 0 0 0 6 0H29" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M14 30.5 9 24" stroke="currentColor" strokeWidth="1.5" opacity=".45" />
-      <path d="M26 30.5 31 24" stroke="currentColor" strokeWidth="1.5" opacity=".45" />
-    </svg>
-  )
 }
 
 export function EmptyState({
@@ -46,9 +46,6 @@ export function EmptyState({
 }) {
   return (
     <div className="empty">
-      <div className="empty-ico">
-        <EmptySvg />
-      </div>
       <div className="empty-title">{title}</div>
       {desc && <div className="empty-desc">{desc}</div>}
       {action && <div className="empty-action">{action}</div>}
@@ -77,26 +74,24 @@ export type StepView = { key: string; label: string; state: 'todo' | 'active' | 
 
 export function Steps({ steps }: { steps: StepView[] }) {
   return (
-    <div className="steps">
+    <ol className="steps">
       {steps.map((s, i) => (
-        <div key={s.key} className={`step step-${s.state}`}>
-          <span className="step-ico">
-            {s.state === 'done' ? '✓' : s.state === 'failed' ? '✕' : i + 1}
-          </span>
+        <li key={s.key} className={`step is-${s.state}`}>
+          <span className="step-dot" aria-hidden />
           <span className="step-label">{s.label}</span>
-          {i < steps.length - 1 && <span className="step-line" />}
-        </div>
+          {i < steps.length - 1 && <span className="step-line" aria-hidden />}
+        </li>
       ))}
-    </div>
+    </ol>
   )
 }
 
 export function ErrorBox({ children, onRetry }: { children: ReactNode; onRetry?: () => void }) {
   return (
-    <div className="error-box">
+    <div className="error-box" role="alert">
       <span>{children}</span>
       {onRetry && (
-        <button className="btn btn-sm" onClick={onRetry}>
+        <button className="text-btn" onClick={onRetry}>
           重试
         </button>
       )}
@@ -106,5 +101,5 @@ export function ErrorBox({ children, onRetry }: { children: ReactNode; onRetry?:
 
 export function Quote({ text }: { text: string }) {
   if (!text) return null
-  return <div className="quote">「{text}」</div>
+  return <blockquote className="quote">{text}</blockquote>
 }

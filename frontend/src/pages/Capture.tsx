@@ -12,16 +12,6 @@ const DEFAULT_STEPS: StepView[] = [
   { key: 'done', label: '等待确认', state: 'todo' },
 ]
 
-function DropIco() {
-  return (
-    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" className="drop-ico" aria-hidden>
-      <rect x="6.75" y="10.75" width="30.5" height="24.5" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="16" cy="19" r="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="m9 31 8-8 6 6 5-5 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 export default function Capture() {
   const navigate = useNavigate()
   const [jobId, setJobId] = useState<string | null>(null)
@@ -123,20 +113,18 @@ export default function Capture() {
         </div>
       </div>
 
-      {error && !running && (
-        <ErrorBox onRetry={jobId ? reset : undefined}>{error}</ErrorBox>
-      )}
+      {error && !running && <ErrorBox onRetry={jobId ? reset : undefined}>{error}</ErrorBox>}
 
       {jobId !== null && (
-        <section className="card">
-          <div className="card-head">
+        <section className="process">
+          <div className="process-head">
             <h2>正在处理{sourceName ? `：${sourceName}` : ''}</h2>
             {running && <LoadingRow label="" />}
           </div>
           <Steps steps={job?.stage?.steps ?? DEFAULT_STEPS} />
-          {job?.stage?.message && <p className="step-message">{job.stage.message}</p>}
+          {job?.stage?.message && <p className="process-message">{job.stage.message}</p>}
           {job?.state === 'failed' && (
-            <div style={{ marginTop: 12 }}>
+            <div className="process-error">
               <ErrorBox onRetry={reset}>{job.error ?? error ?? '处理失败'}</ErrorBox>
             </div>
           )}
@@ -145,8 +133,8 @@ export default function Capture() {
 
       {running ? null : (
         <>
-          <section
-            className={dragging ? 'dropzone dragging' : 'dropzone'}
+          <div
+            className={dragging ? 'dropzone is-dragging' : 'dropzone'}
             onClick={() => fileRef.current?.click()}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') fileRef.current?.click()
@@ -172,14 +160,14 @@ export default function Capture() {
                 e.target.value = ''
               }}
             />
-            <DropIco />
-            <div className="drop-title">把截图拖到这里，或点击选择图片</div>
-            <div className="muted">也可以直接 Ctrl + V 粘贴剪贴板里的截图</div>
-          </section>
+            <div className="drop-title">拖入截图，或点击选择图片</div>
+            <div className="drop-hint">也可以直接 Ctrl + V 粘贴剪贴板里的截图</div>
+          </div>
 
-          <section className="card">
-            <div className="card-head">
-              <h2>粘贴或输入文字</h2>
+          <section className="capture-form">
+            <div className="section-head">
+              <h2>或者粘贴一段文字</h2>
+              <span className="meta section-hint">适用于通知原文、邮件正文、聊天记录</span>
             </div>
             <div className="form-stack">
               <input
@@ -191,13 +179,13 @@ export default function Capture() {
               />
               <textarea
                 className="textarea"
-                rows={6}
-                placeholder="把通知原文、邮件正文或聊天记录粘贴到这里…"
+                rows={7}
+                placeholder="把通知原文粘贴到这里…"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
               <div className="form-foot">
-                <span className="muted">识别通常需要几秒到十几秒，完成后会自动跳到收件箱。</span>
+                <span className="meta">识别通常需要几秒到十几秒，完成后会自动跳到收件箱。</span>
                 <button
                   className="btn btn-primary"
                   disabled={!text.trim() || submitting}

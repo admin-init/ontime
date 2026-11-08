@@ -40,7 +40,8 @@ export type Field = {
   label: string
   value: unknown
   display: string | null
-  status: string
+  /** 契约：Claim.status，另有 unconfirmed（无任何依据） */
+  status: ClaimStatus | 'unconfirmed'
   precision: 'date' | 'datetime' | 'range' | null
   claims: Claim[]
 }
@@ -59,7 +60,8 @@ export type Task = {
 export type EventBrief = {
   id: string
   title: string
-  state: 'candidate' | 'confirmed' | 'ignored'
+  /** 列表不含 merged；直接打开已合并事件 URL 时为 merged */
+  state: 'candidate' | 'confirmed' | 'ignored' | 'merged'
   org: string | null
   location: string | null
   start_at: string | null
@@ -130,6 +132,7 @@ export type MergeDiffRow = {
 
 export type Merge = {
   id: string
+  /** 后端为 0–5 的匹配分，不是百分比 */
   score: number
   reasons: string[]
   state: 'pending'

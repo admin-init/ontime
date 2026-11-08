@@ -27,7 +27,9 @@ export default function Settings() {
       <div className="page-head">
         <div>
           <h1>设置</h1>
-          <div className="page-sub">能力边界、演示数据与隐私说明。已接入的标「已实现」，没接入的明确写「演示暂未接入」。</div>
+          <div className="page-sub">
+            能力边界、演示数据与隐私说明。已接入的标「已实现」，没接入的明确写「演示暂未接入」。
+          </div>
         </div>
       </div>
 
@@ -35,34 +37,36 @@ export default function Settings() {
       {loading && <LoadingRow />}
 
       {data && (
-        <section className="card">
-          <div className="card-head">
+        <section className="section">
+          <div className="section-head">
             <h2>能力矩阵</h2>
-            <span className="muted">与后端声明的能力边界一致</span>
+            <span className="meta section-hint">与后端声明的能力边界一致</span>
           </div>
-          <table className="table cap-table">
-            <thead>
-              <tr>
-                <th style={{ width: 220 }}>能力</th>
-                <th>说明</th>
-                <th style={{ width: 130 }}>状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((it) => (
-                <tr key={it.key}>
-                  <td style={{ fontWeight: 500 }}>{it.name}</td>
-                  <td className="muted">{it.note}</td>
-                  <td>{it.level === 'live' ? <Badge tone="success">已实现</Badge> : <Badge tone="gray">演示暂未接入</Badge>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ul className="cap-list">
+            {data.items.map((it) => (
+              <li key={it.key} className="cap-item">
+                <div className="cap-main">
+                  <div className="cap-name">{it.name}</div>
+                  <div className="cap-note">{it.note}</div>
+                </div>
+                <div className="cap-state">
+                  {it.level === 'live' ? (
+                    <span className="live-state">
+                      <span className="live-dot" aria-hidden />
+                      已实现
+                    </span>
+                  ) : (
+                    <Badge tone="warn">演示暂未接入</Badge>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
-      <section className="card">
-        <div className="card-head">
+      <section className="section">
+        <div className="section-head">
           <h2>隐私说明</h2>
         </div>
         <ol className="privacy-list">
@@ -76,34 +80,32 @@ export default function Settings() {
         </ol>
       </section>
 
-      <section className="card">
-        <div className="card-head">
+      <section className="section">
+        <div className="section-head">
           <h2>演示数据</h2>
         </div>
-        <div className="reset-zone">
-          <div className="muted">
-            「演示重置」会清空本机所有事件、任务、来源与截图，恢复到空状态，仅用于演示前重来。
+        <p className="block-note">
+          「演示重置」会清空本机所有事件、任务、来源与截图，恢复到空状态，仅用于演示前重来。
+        </p>
+        {resetError && <ErrorBox>{resetError}</ErrorBox>}
+        {resetState === 'done' && <p className="reset-ok">已重置，当前数据为空。</p>}
+        {confirming ? (
+          <div className="reset-confirm">
+            <span className="reset-warn">确定要清空吗？此操作不可撤销。</span>
+            <button className="btn btn-danger btn-sm" disabled={resetState === 'busy'} onClick={() => void doReset()}>
+              {resetState === 'busy' ? '重置中…' : '确认清空'}
+            </button>
+            <button className="text-btn" disabled={resetState === 'busy'} onClick={() => setConfirming(false)}>
+              取消
+            </button>
           </div>
-          {resetError && <ErrorBox>{resetError}</ErrorBox>}
-          {resetState === 'done' && <div className="reset-ok">已重置，当前数据为空。</div>}
-          {confirming ? (
-            <div className="reset-confirm">
-              <span style={{ color: 'var(--red)', fontWeight: 600 }}>确定要清空吗？此操作不可撤销。</span>
-              <button className="btn btn-danger btn-sm" disabled={resetState === 'busy'} onClick={() => void doReset()}>
-                {resetState === 'busy' ? '重置中…' : '确认清空'}
-              </button>
-              <button className="btn btn-sm" disabled={resetState === 'busy'} onClick={() => setConfirming(false)}>
-                取消
-              </button>
-            </div>
-          ) : (
-            <div>
-              <button className="btn" disabled={resetState === 'busy'} onClick={() => setConfirming(true)}>
-                重置演示数据
-              </button>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="reset-row">
+            <button className="btn btn-secondary" disabled={resetState === 'busy'} onClick={() => setConfirming(true)}>
+              重置演示数据
+            </button>
+          </div>
+        )}
       </section>
     </>
   )
