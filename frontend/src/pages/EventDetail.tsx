@@ -9,6 +9,7 @@ import {
   patchEvent,
   startVerify,
   toggleTask,
+  verifyByUrl,
   type Claim,
   type EventDetail,
   type Field,
@@ -325,24 +326,134 @@ function TaskItem({
   )
 }
 
+function VerifyResultView({
+  result,
+  applying,
+  applied,
+  onApply,
+}: {
+  result: VerifyResult
+  applying: string | null
+  applied: Set<string>
+  onApply: (f: VerifyResult['findings'][number]) => void
+}) {
+  const banner =
+    result.status === 'found'
+      ? { cls: 'found', status: 'supported', title: '找到可对照的官方内容' }
+      : result.status === 'conflict'
+        ? { cls: 'conflict', status: 'conflict', title: '核实结果与当前记录存在冲突' }
+        : { cls: 'none', status: 'unconfirmed', title: '未找到明确适用的官方依据' }
+
+  return (
+    <div className="verify">
+      <div className={`verify-state is-${banner.cls}`}>
+        <StatusMark status={banner.status} label={banner.title} />
+        <p>{result.message}</p>
+      </div>
+      {result.status !== 'not_found' && (
+        <div className="finding-list">
+          {result.findings.map((f) => (
+            <div key={f.id} className="finding">
+              <div className="finding-head">
+                {f.state === 'supported' && <StatusMark status="supported" label="官网支持" />}
+                {f.state === 'conflict' && <StatusMark status="conflict" label="与当前记录冲突" />}
+                {f.state === 'needs_review' && <StatusMark status="needs_anchor" label="待复核" />}
+                {f.impact === 'high' && <Badge tone="warn">高影响</Badge>}
+                <b>{f.label}</b>
+                <span className="finding-value">{f.display ?? String(f.value ?? '')}</span>
+              </div>
+              <Quote text={f.quote} />
+              <div className="finding-foot">
+                <a className="source-link" href={f.source_url} target="_blank" rel="noreferrer">
+                  {f.source_title}
+                </a>
+                {f.official && <span className="meta">官方来源</span>}
+                {f.note && <span className="meta">{f.note}</span>}
+                {f.state === 'needs_review' ? (
+                  <span className="meta">适用性复核未通过，建议先不采用</span>
+                ) : applied.has(f.id) ? (
+                  <span className="meta">已写入</span>
+                ) : (
+                  <button className="text-btn is-strong" disabled={applying === f.id} onClick={() => onApply(f)}>
+                    {applying === f.id ? '写入中…' : '作为补充写入'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {result.status === 'not_found' && (
+        <p className="block-note">没有给出任何结论。可以补充说明后再次核实，或直接咨询负责部门。</p>
+      )}
+      {result.sources.length > 0 && (
+        <div className="verify-sources">
+          <h4>查看了这些页面</h4>
+          <ul>
+            {result.sources.map((s) => (
+              <li key={s.id}>
+                <a href={s.url} target="_blank" rel="noreferrer" className="source-link">
+                  {s.title}
+                </a>
+                <span className="meta">{s.domain}</span>
+                {s.official && <span className="meta">官方</span>}
+                <span className="meta">{s.chars} 字</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="meta verify-time">
+        核实时间：{fmtClock(result.checked_at)}
+        {result.mode === 'url'
+          ? result.query.length > 0 && ` · 核对链接：${result.query[0]}`
+          : result.query.length > 0 && ` · 检索词：${result.query.join('；')}`}
+      </div>
+    </div>
+  )
+}
+
 function VerifyPanel({ eventId, onRefresh }: { eventId: string; onRefresh: () => Promise<void> }) {
   const [jobId, setJobId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [applying, setApplying] = useState<string | null>(null)
   const [applied, setApplied] = useState<Set<string>>(new Set())
+  const [urlResult, setUrlResult] = useState<VerifyResult | null>(null)
+  const [url, setUrl] = useState('')
+  const [urlBusy, setUrlBusy] = useState(false)
   const job = usePollJob(jobId, 1000)
 
   const running = jobId !== null && job?.state !== 'done' && job?.state !== 'failed'
-  const result = job?.state === 'done' && job.result ? (job.result as VerifyResult) : null
+  const searchResult = job?.state === 'done' && job.result ? (job.result as VerifyResult) : null
+  // 用户提供的链接核实结果优先展示，避免与上一次搜索结论混在一起
+  const result = urlResult ?? searchResult
+  const showUrlEntry = result?.status === 'not_found' && !running && !urlBusy
 
   async function start() {
     setError(null)
+    setUrlResult(null)
     try {
       const res = await startVerify(eventId)
       setApplied(new Set())
       setJobId(res.job_id)
     } catch (e) {
       setError((e as Error).message)
+    }
+  }
+
+  async function checkUrl() {
+    const value = url.trim()
+    if (!value || urlBusy) return
+    setError(null)
+    setUrlBusy(true)
+    try {
+      const res = await verifyByUrl(eventId, value)
+      setUrlResult(res)
+      setApplied(new Set())
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setUrlBusy(false)
     }
   }
 
@@ -368,20 +479,14 @@ function VerifyPanel({ eventId, onRefresh }: { eventId: string; onRefresh: () =>
     }
   }
 
-  const banner =
-    result === null
-      ? null
-      : result.status === 'found'
-        ? { cls: 'found', status: 'supported', title: '找到可对照的官方内容' }
-        : result.status === 'conflict'
-          ? { cls: 'conflict', status: 'conflict', title: '核实结果与当前记录存在冲突' }
-          : { cls: 'none', status: 'unconfirmed', title: '未找到明确适用的官方依据' }
-
   return (
     <section className="block">
       <div className="section-head">
-        <h2>联网核实</h2>
-        <button className="btn btn-secondary btn-sm" disabled={running} onClick={() => void start()}>
+        <h2>
+          联网核实
+          {result?.mode === 'url' && <span className="verify-origin">来源：你提供的链接</span>}
+        </h2>
+        <button className="btn btn-secondary btn-sm" disabled={running || urlBusy} onClick={() => void start()}>
           {jobId === null ? '联网核实' : '再次核实'}
         </button>
       </div>
@@ -395,70 +500,40 @@ function VerifyPanel({ eventId, onRefresh }: { eventId: string; onRefresh: () =>
         </div>
       )}
       {job?.state === 'failed' && <ErrorBox onRetry={() => void start()}>{job.error ?? '核实失败'}</ErrorBox>}
-      {result && banner && (
-        <div className="verify">
-          <div className={`verify-state is-${banner.cls}`}>
-            <StatusMark status={banner.status} label={banner.title} />
-            <p>{result.message}</p>
-          </div>
-          {result.status !== 'not_found' && (
-            <div className="finding-list">
-              {result.findings.map((f) => (
-                <div key={f.id} className="finding">
-                  <div className="finding-head">
-                    {f.state === 'supported' && <StatusMark status="supported" label="官网支持" />}
-                    {f.state === 'conflict' && <StatusMark status="conflict" label="与当前记录冲突" />}
-                    {f.state === 'needs_review' && <StatusMark status="needs_anchor" label="待复核" />}
-                    {f.impact === 'high' && <Badge tone="warn">高影响</Badge>}
-                    <b>{f.label}</b>
-                    <span className="finding-value">{f.display ?? String(f.value ?? '')}</span>
-                  </div>
-                  <Quote text={f.quote} />
-                  <div className="finding-foot">
-                    <a className="source-link" href={f.source_url} target="_blank" rel="noreferrer">
-                      {f.source_title}
-                    </a>
-                    {f.official && <span className="meta">官方来源</span>}
-                    {f.note && <span className="meta">{f.note}</span>}
-                    {f.state === 'needs_review' ? (
-                      <span className="meta">适用性复核未通过，建议先不采用</span>
-                    ) : applied.has(f.id) ? (
-                      <span className="meta">已写入</span>
-                    ) : (
-                      <button className="text-btn is-strong" disabled={applying === f.id} onClick={() => void apply(f)}>
-                        {applying === f.id ? '写入中…' : '作为补充写入'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {result.status === 'not_found' && (
-            <p className="block-note">没有给出任何结论。可以补充说明后再次核实，或直接咨询负责部门。</p>
-          )}
-          {result.sources.length > 0 && (
-            <div className="verify-sources">
-              <h4>查看了这些页面</h4>
-              <ul>
-                {result.sources.map((s) => (
-                  <li key={s.id}>
-                    <a href={s.url} target="_blank" rel="noreferrer" className="source-link">
-                      {s.title}
-                    </a>
-                    <span className="meta">{s.domain}</span>
-                    {s.official && <span className="meta">官方</span>}
-                    <span className="meta">{s.chars} 字</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="meta verify-time">
-            核实时间：{fmtClock(result.checked_at)}
-            {result.query.length > 0 && ` · 检索词：${result.query.join('；')}`}
-          </div>
+      {urlBusy ? (
+        <div className="loading-row">
+          <Spinner label="正在抓取你提供的链接并核对原文…" />
         </div>
+      ) : (
+        result && <VerifyResultView result={result} applying={applying} applied={applied} onApply={(f) => void apply(f)} />
+      )}
+      {showUrlEntry && (
+        <form
+          className="url-check"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void checkUrl()
+          }}
+        >
+          <label className="url-check-label" htmlFor="verify-url">
+            已有官方链接？粘贴后核对
+          </label>
+          <div className="url-check-row">
+            <input
+              id="verify-url"
+              className="input"
+              type="url"
+              inputMode="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="粘贴官方页面链接（https://…）"
+              autoComplete="off"
+            />
+            <button className="btn btn-primary btn-sm" type="submit" disabled={!url.trim() || urlBusy}>
+              核对这个链接
+            </button>
+          </div>
+        </form>
       )}
     </section>
   )

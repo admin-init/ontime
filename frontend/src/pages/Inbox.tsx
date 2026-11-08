@@ -83,7 +83,7 @@ function MergeItem({
     <li className="merge-item">
       <div className="item-title-row">
         <h3>疑似同一件事</h3>
-        <span className="meta">匹配分 {m.score.toFixed(1)}</span>
+        <span className="meta">匹配分 {m.score.toFixed(1)} / 5</span>
       </div>
       <div className="merge-pair">
         <div className="merge-side">
