@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>到点 · 评审演示</title>
+<style>
+  /* ===== 设计 token ===== */
+  :root {
+    --paper: #F7F5F1;
+    --ink: #20201E;
+    --muted: #72706B;
+    --line: #E5E1DA;
+    --green: #1D4A3B;
+    --clash: #B45B3E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @page { size: 13.333in 7.5in; margin: 0; }
+
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+  }
+
+  /* ===== 幻灯片基底 1280x720 ===== */
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--paper);
+    color: var(--ink);
+    position: relative;
+    overflow: hidden;
+    padding: 60px 84px 76px;
+  }
+  @media print {
+    body { margin: 0; }
+    .slide { page-break-after: always; margin: 0; outline: none; }
+    .slide:last-child { page-break-after: auto; }
+  }
+  @media screen {
+    body { background: #D8D5CF; padding: 24px 0; }
+    .slide { margin: 28px auto; outline: 1px solid #b7b3aa; }
+  }
+  /* 单页截图模式：#p5 只渲染第 5 页 */
+  body.solo { padding: 0; background: var(--paper); }
+  body.solo .slide { margin: 0; outline: none; }
+
+  /* ===== 排版元件 ===== */
+  .kicker {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; letter-spacing: 0.18em; color: var(--muted);
+  }
+  .kicker::before { content: ""; width: 10px; height: 10px; background: var(--green); }
+  h1 { font-size: 44px; font-weight: 600; line-height: 1.2; margin-top: 14px; letter-spacing: 0.01em; }
+  .sub { font-size: 22px; color: var(--muted); margin-top: 12px; }
+  .note { font-size: 13px; color: var(--muted); }
+  .tag {
+    display: inline-block; font-size: 12px; color: var(--muted);
+    border: 1px solid var(--muted); padding: 1px 8px; margin-left: 10px; vertical-align: 3px;
+  }
+  .foot {
+    position: absolute; left: 84px; right: 84px; bottom: 24px;
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--muted);
+    border-top: 1px solid var(--line); padding-top: 10px;
+  }
+  .green { color: var(--green); }
+  .clash { color: var(--clash); }
+
+  /* 截图裁切：外框定高，img 负 margin 上移 */
+  .crop { overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  .crop img { width: 100%; display: block; }
+  .cover { overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cap { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* ===== P2/P3 三栏 ===== */
+  .cols3 { display: flex; gap: 0; margin-top: 44px; }
+  .cols3 .col { flex: 1; padding: 0 32px; border-left: 1px solid var(--line); }
+  .cols3 .col:first-child { border-left: none; padding-left: 0; }
+  .cols3 .col:last-child { padding-right: 0; }
+  .cols3 .col h3 { font-size: 22px; font-weight: 600; }
+  .cols3 .col .what { font-size: 17px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+  .cols3 .col .miss { font-size: 16px; color: var(--clash); margin-top: 14px; }
+
+  /* ===== P4 原则行 ===== */
+  .rule { display: flex; align-items: baseline; gap: 26px; padding: 22px 0; border-top: 1px solid var(--line); }
+  .rule:first-of-type { border-top: none; }
+  .rule .no { font-size: 40px; font-weight: 600; color: var(--green); width: 52px; flex: none; }
+  .rule .name { font-size: 25px; font-weight: 600; width: 240px; flex: none; }
+  .rule .desc { font-size: 18px; color: var(--muted); line-height: 1.6; }
+
+  /* ===== 闭环：两行三列 ===== */
+  .flowpage { padding: 42px 68px 56px; }
+  .flowpage h1 { font-size: 34px; margin-top: 8px; }
+  .flow2 { margin-top: 14px; }
+  .flow2 .line { display: grid; grid-template-columns: 360px 32px 360px 32px 360px; }
+  .flow2 .cell { width: 360px; }
+  .flow2 .headrow { display: flex; align-items: baseline; gap: 9px; margin-bottom: 7px; }
+  .flow2 .sn { font-size: 11px; letter-spacing: 0.14em; color: var(--muted); }
+  .flow2 .nm { font-size: 17px; font-weight: 600; }
+  .flow2 .shot {
+    width: 360px; height: 186px; border: 1px solid var(--line);
+    background: #fff; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .flow2 .shot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .flow2 .gap {
+    width: 32px; height: 186px; margin-top: 26px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 16px;
+  }
+  .flow2 .fold { height: 30px; }
+  .flow2 .fold svg { display: block; }
+  .p5note { font-size: 17px; color: var(--ink); margin-top: 14px; line-height: 1.5; }
+  .flowpage .foot { left: 68px; right: 68px; }
+
+  /* ===== 多来源 ===== */
+  .srcpage { padding-top: 50px; }
+  .sources { display: flex; gap: 44px; margin-top: 10px; }
+  .sources .left { width: 500px; flex: none; }
+  .sources .sblock { border-top: 1px solid var(--line); padding: 15px 0 13px; }
+  .sources .sblock:first-child { border-top: none; padding-top: 2px; }
+  .sources .sblock h3 { font-size: 20px; font-weight: 600; }
+  .sources .sdata { font-size: 15px; color: var(--green); font-weight: 600; margin-top: 7px; line-height: 1.45; }
+  .sources .sblock p { font-size: 14px; color: var(--muted); margin-top: 5px; line-height: 1.55; }
+  .sources .right { width: 600px; flex: none; }
+  .sources .rblock + .rblock { margin-top: 2px; }
+  .sources .scap { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; margin-bottom: 2px; }
+  .sources .shot { border: 1px solid var(--line); background: #fff; overflow: hidden; }
+  .sources .shot img { width: 100%; display: block; }
+
+  /* ===== 能力矩阵：四档 ===== */
+  .cap-feature { margin-top: 32px; }
+  .cap-title { display: flex; align-items: center; gap: 9px; font-size: 18px; font-weight: 600; padding-bottom: 9px; border-bottom: 2px solid var(--ink); }
+  .cap-title .cdot { width: 9px; height: 9px; display: inline-block; }
+  .cap-title .ccount { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 32px; list-style: none; }
+  .cap-grid li { padding: 15px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+  .cap-grid li b { display: block; font-weight: 600; }
+  .cap-grid li span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cap-rest { display: flex; gap: 32px; margin-top: 32px; }
+  .cap-box { flex: 1; border-top: 1px solid var(--line); padding-top: 11px; }
+  .cap-box .chead { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+  .cap-box .cname { font-size: 17px; font-weight: 600; margin-top: 5px; line-height: 1.35; }
+  .cap-box p { font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+  /* ===== P8 核实对照 ===== */
+  .verify-row { margin-top: 22px; }
+  .verify-row .vlabel { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+  .verify-row .vdot { display: inline-block; width: 9px; height: 9px; margin-right: 10px; vertical-align: 2px; }
+
+  /* ===== P9 能力矩阵 ===== */
+  .matrix { display: flex; gap: 0; margin-top: 40px; }
+  .matrix .mcol { flex: 1; padding: 0 30px; border-left: 1px solid var(--line); }
+  .matrix .mcol:first-child { border-left: none; padding-left: 0; }
+  .matrix .mcol:last-child { padding-right: 0; }
+  .matrix .mhead { font-size: 20px; font-weight: 600; padding-bottom: 12px; border-bottom: 2px solid var(--ink); }
+  .matrix .mhead .mdot { display: inline-block; width: 9px; height: 9px; margin-right: 9px; vertical-align: 2px; }
+  .matrix ul { list-style: none; margin-top: 6px; }
+  .matrix li { font-size: 17px; line-height: 1.5; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .matrix li:last-child { border-bottom: none; }
+  .matrix .msub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  /* ===== 封面 / 收尾 ===== */
+  .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 600; }
+  .brand::before { content: ""; width: 12px; height: 12px; background: var(--green); }
+
+  /* 封面：巨型品牌字 */
+  .cover-brand {
+    display: flex; align-items: flex-end; gap: 18px;
+    margin-top: 118px;
+    font-size: 146px; line-height: 1; font-weight: 700;
+    letter-spacing: -0.02em; color: var(--green);
+  }
+  .cover-brand .mark {
+    width: 12px; height: 12px; background: var(--green);
+    flex: none; margin-bottom: 18px;
+  }
+  .cover-title { margin-top: 78px; }
+  .cover-title h1 { font-size: 50px; font-weight: 700; margin-top: 0; line-height: 1.2; }
+  .cover-title .sub { font-size: 24px; font-weight: 400; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<!-- ============ 1 封面 ============ -->
+<section class="slide" id="p1">
+  <div class="cover-brand"><span class="mark"></span><span>到点</span></div>
+  <div class="cover-title">
+    <h1>面向大学生的多来源校园信息行动台</h1>
+    <p class="sub">官网、邮件、聊天截图，汇成有据可查的行动清单</p>
+  </div>
+  <div class="foot">
+    <span>到点 · 产品评审演示</span>
+    <span>与宣传片同一故事 · 2026-11</span>
+  </div>
+</section>
+
+<!-- ============ 2 问题 ============ -->
+<section class="slide" id="p2">
+  <div class="kicker">01 · 问题</div>
+  <h1>信息散着，做法也没留下依据</h1>
+  <div class="cols3" style="margin-top:30px;">
+    <div class="col">
+      <h3>官网通知</h3>
+      <p class="what">发在网页上，刷过去就找不到了</p>
+    </div>
+    <div class="col">
+      <h3>群聊截图</h3>
+      <p class="what">存进相册，沉在几百张图下面</p>
+    </div>
+    <div class="col">
+      <h3>报名与截止</h3>
+      <p class="what">各人记各的日历，口径不一致</p>
+    </div>
+  </div>
+  <p style="font-size:13px; color:var(--muted); letter-spacing:0.12em; margin-top:36px;">已经做过的三个动作</p>
+  <div class="cols3" style="margin-top:16px;">
+    <div class="col">
+      <h3>截图存相册</h3>
+      <p class="what">图在，原文的上下文不在</p>
+      <p class="miss">没有依据</p>
+    </div>
+    <div class="col">
+      <h3>抄进备忘录</h3>
+      <p class="what">转写靠手，错一个数字没人知道</p>
+      <p class="miss">没有冲突提示</p>
+    </div>
+    <div class="col">
+      <h3>同步进日历</h3>
+      <p class="what">只提醒开始时间，不带出处</p>
+      <p class="miss">变更会漏</p>
+    </div>
+  </div>
+  <p style="font-size:22px; margin-top:34px;">不是没有记下来，而是同一件事的信息，没有被整理到一起。</p>
+  <p style="font-size:23px; margin-top:12px;">真到用时还是一句：<span class="clash" style="font-weight:600;">「到底几点？在哪？要交什么？」</span></p>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>场景示意<span class="tag" style="margin-left:8px;">示意</span></span>
+    <span>02 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 3 主张 ============ -->
+<section class="slide" id="p3">
+  <div class="kicker">02 · 主张</div>
+  <h1>三条原则，一页讲完</h1>
+  <div style="margin-top:36px;">
+    <div class="rule">
+      <div class="no">1</div>
+      <div class="name">字段级来源</div>
+      <div class="desc">每个字段都能翻回原文，识别结果可校验、可定位。</div>
+    </div>
+    <div class="rule">
+      <div class="no">2</div>
+      <div class="name">不静默覆盖</div>
+      <div class="desc">同一字段出现新值，并排摆出来，由用户裁决。</div>
+    </div>
+    <div class="rule">
+      <div class="no">3</div>
+      <div class="name">未确认就直说</div>
+      <div class="desc">找不到依据，明说<span class="clash">「未找到明确适用的官方依据」</span>，不给结论。</div>
+    </div>
+  </div>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>03 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 4 闭环 ============ -->
+<section class="slide flowpage" id="p4">
+  <div class="kicker">03 · 闭环</div>
+  <h1>从一张截图，到一份行动清单</h1>
+  <div class="flow2">
+    <div class="line">
+      <div class="cell">
+        <div class="headrow"><span class="sn">STEP 1</span><span class="nm">上传 / 粘贴</span></div>
+        <div class="shot"><img src="assets/p5/step1.png" alt="截图上传区与粘贴入口"></div>
+      </div>
+      <div class="gap">→</div>
+      <div class="cell">
+        <div class="headrow"><span class="sn">STEP 2</span><span class="nm">字段识别</span></div>
+        <div class="shot"><img src="assets/p5/step2.png" alt="事件字段行与出处"></div>
+      </div>
+      <div class="gap">→</div>
+      <div class="cell">
+        <div class="headrow"><span class="sn">STEP 3</span><span class="nm">合并建议</span></div>
+        <div class="shot"><img src="assets/p5/step3.png" alt="合并建议卡"></div>
+      </div>
+    </div>
+    <div class="fold">
+      <svg width="1144" height="30" viewBox="0 0 1144 30" xmlns="http://www.w3.org/2000/svg">
+        <path d="M964 0 V15 H180 V23" fill="none" stroke="#72706B" stroke-width="1"/>
+        <path d="M175 19 L180 27 L185 19" fill="none" stroke="#72706B" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="line">
+      <div class="cell">
+        <div class="headrow"><span class="sn">STEP 4</span><span class="nm">冲突并列</span></div>
+        <div class="shot"><img src="assets/p5/step4.png" alt="同一字段的两个候选"></div>
+      </div>
+      <div class="gap">→</div>
+      <div class="cell">
+        <div class="headrow"><span class="sn">STEP 5</span><span class="nm">联网核实</span></div>
+        <div class="shot"><img src="assets/p5/step5.png" alt="核实结论与原文引文"></div>
+      </div>
+      <div class="gap">→</div>
+      <div class="cell">
+        <div class="headrow"><span class="sn">STEP 6</span><span class="nm">行动清单</span></div>
+        <div class="shot"><img src="assets/p5/step6.png" alt="近 7 天行动清单"></div>
+      </div>
+    </div>
+  </div>
+  <p class="p5note">每一步人都看得见、说了算；识别与核实是真实模型与检索调用，结论以原文出处为准。活动内容为演示数据。</p>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>04 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 5 机制一 ============ -->
+<section class="slide" id="p5">
+  <div class="kicker">04 · 机制一</div>
+  <h1>每个字段，都连回原文</h1>
+  <div style="display:flex; gap:52px; margin-top:34px;">
+    <div style="width:380px; flex:none; padding-top:12px;">
+      <div style="border-top:1px solid var(--line); padding:20px 0;">
+        <p style="font-size:21px; font-weight:600;">原文片段随身</p>
+        <p style="font-size:16px; color:var(--muted); margin-top:6px; line-height:1.6;">每个字段挂着出处引文，模型不能凭空编造。</p>
+      </div>
+      <div style="border-top:1px solid var(--line); padding:20px 0;">
+        <p style="font-size:21px; font-weight:600;">点击即定位</p>
+        <p style="font-size:16px; color:var(--muted); margin-top:6px; line-height:1.6;">点开任一行，跳到原始截图或网页原文。</p>
+      </div>
+      <div style="border-top:1px solid var(--line); padding:20px 0;">
+        <p style="font-size:21px; font-weight:600;">过期可发现</p>
+        <p style="font-size:16px; color:var(--muted); margin-top:6px; line-height:1.6;">原文页面改动后，字段自动标记待复核。</p>
+      </div>
+    </div>
+    <div style="flex:1;">
+      <div class="crop" style="height:418px;">
+        <img src="assets/event-full.png" style="margin-top:-134px;" alt="事件详情 · 字段与出处">
+      </div>
+      <p class="cap">事件详情 · 「字段与出处」：标题、时间、地点各带出处，活动时间给出 2 条出处（真实界面）</p>
+    </div>
+  </div>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>05 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 6 机制二 ============ -->
+<section class="slide" id="p6">
+  <div class="kicker">05 · 机制二</div>
+  <h1 style="font-size:40px;">冲突并排，裁决由人，历史只追加</h1>
+  <div class="crop" style="height:265px; margin-top:20px;">
+    <img src="assets/event-full.png" style="width:113%; margin-top:-295px;" alt="活动时间冲突并排">
+  </div>
+  <p class="cap">「活动时间」两种说法并排：采用一个、保留另一个，<span class="clash">不会自动覆盖</span>（真实界面）</p>
+  <div style="display:flex; gap:48px; margin-top:18px; align-items:flex-start;">
+    <div style="flex:1; padding-top:6px;">
+      <p style="font-size:20px; line-height:1.7;">
+        <span style="font-weight:600;">并排</span>——同一字段两种说法同时展示；<br>
+        <span style="font-weight:600;">由人</span>——采用或保留，用户点选；<br>
+        <span style="font-weight:600;">可追溯</span>——历史<span class="clash">只追加，不覆盖</span>，合并也留痕。
+      </p>
+    </div>
+    <div style="width:600px; flex:none;">
+      <div class="crop" style="height:160px;">
+        <img src="assets/event-full.png" style="width:115%; margin-left:-5%; margin-top:-1034px;" alt="历史 · 只追加，不覆盖">
+      </div>
+      <p class="cap">历史：每次变更一条记录，只追加，不覆盖（真实界面）</p>
+    </div>
+  </div>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>06 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 7 核实 ============ -->
+<section class="slide" id="p7">
+  <div class="kicker">06 · 核实<span style="margin-left:6px; font-size:12px; letter-spacing:0; color:var(--clash); border:1px solid var(--clash); padding:1px 8px;">另一核实示例：公开讲座</span></div>
+  <h1 style="font-size:34px; margin-top:10px;">有依据带原文，没依据直说</h1>
+  <div class="verify-row" style="margin-top:10px;">
+    <div class="vlabel" style="margin-bottom:6px;"><span class="vdot" style="background:var(--clash);"></span>搜索没找到 → 明说未确认</div>
+    <div class="crop" style="height:186px;">
+      <img src="assets/verify-notfound.png" style="width:115%; margin-top:-168px;" alt="核实未找到">
+    </div>
+    <p class="cap" style="margin-top:5px;">「未找到明确适用的官方依据」，不给结论；列出查看了哪些页面，可补链接再核实（真实界面）</p>
+  </div>
+  <div class="verify-row" style="margin-top:10px;">
+    <div class="vlabel" style="margin-bottom:6px;"><span class="vdot" style="background:var(--green);"></span>贴官方链接 → 逐字段给出原文依据</div>
+    <div class="crop" style="height:190px;">
+      <img src="assets/verify-url-result.png" style="width:115%; margin-top:-178px;" alt="链接核对结果">
+    </div>
+    <p class="cap" style="margin-top:5px;">「官网支持」：对照到的字段带原文引文与来源链接，作为补充写入（真实界面）</p>
+  </div>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>本页与前述「校园招聘宣讲会」不是同一事件</span>
+    <span>07 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 8 多来源 ============ -->
+<section class="slide srcpage" id="p8">
+  <div class="kicker">07 · 多来源</div>
+  <h1 style="font-size:38px; margin-top:8px;">多来源，不是多接几个接口</h1>
+  <p style="font-size:18px; color:var(--muted); margin-top:8px;">无论来自官网、邮件还是聊天截图，都进入同一套整理流程：关联同一事件、保留出处、并排冲突。</p>
+  <div class="sources">
+    <div class="left">
+      <div class="sblock">
+        <h3>官网同步 · UNNC</h3>
+        <div class="sdata">就业 0 篇 · 新闻 12 篇 · 活动 5 篇</div>
+        <p>定时抓取公开列表页，新内容先进收件箱待确认；活动栏目最近一次有 1 条抽取失败，失败原因如实显示。</p>
+      </div>
+      <div class="sblock">
+        <h3>邮件导入 · .eml / .mbox</h3>
+        <div class="sdata">已导入 1 封 .eml</div>
+        <p>拖入文件即解析，附件 PDF 与图片一并提取；IMAP 只读拉取已实现，真实邮箱账号尚待验证。</p>
+      </div>
+      <div class="sblock">
+        <h3>自定义站点 · 声明式 + Agent</h3>
+        <div class="sdata">本次调研得到 6 条候选</div>
+        <p>登记域名后定时同步，核实只在该域名内检索；Agent 实访列表页，给出选择器建议，写入前由你确认。</p>
+      </div>
+    </div>
+    <div class="right">
+      <div class="rblock">
+        <div class="scap">官网同步 · 设置页（真实界面）</div>
+        <div class="shot"><img src="assets/src/sync.png" alt="UNNC 三个栏目同步状态与篇数"></div>
+      </div>
+      <div class="rblock">
+        <div class="scap">邮件导入 · .eml 已处理（真实界面）</div>
+        <div class="shot"><img src="assets/src/mail.png" alt="邮件导入与已处理邮件"></div>
+      </div>
+      <div class="rblock">
+        <div class="scap">站点调研 Agent · 6 条候选（真实界面）</div>
+        <div class="shot"><img src="assets/src/agent.png" alt="Agent 调研结果候选条目"></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>08 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 9 能力边界 ============ -->
+<section class="slide" id="p9">
+  <div class="kicker">08 · 能力边界</div>
+  <h1>现在做到哪，就说到哪</h1>
+  <div class="cap-feature">
+    <div class="cap-title"><span class="cdot" style="background:var(--green);"></span>真实可用<span class="ccount">9 项</span></div>
+    <ul class="cap-grid">
+      <li><b>截图识别与收录</b><span>上传或粘贴，真实调用模型</span></li>
+      <li><b>事件整理与字段来源</b><span>每个字段带原文与出处</span></li>
+      <li><b>跨来源关联 / 冲突</b><span>提出合并建议，由你确认</span></li>
+      <li><b>联网核实</b><span>真实检索并抓取原文</span></li>
+      <li><b>行动清单</b><span>近 7 天待办聚合</span></li>
+      <li><b>日历导出</b><span>导出 .ics</span></li>
+      <li><b>官网同步</b><span>UNNC 三栏目实测</span></li>
+      <li><b>站内提醒</b><span>截止前 2 小时生成</span></li>
+      <li><b>站点调研 Agent</b><span>实访列表页，给出规则建议</span></li>
+    </ul>
+  </div>
+  <div class="cap-rest">
+    <div class="cap-box">
+      <div class="chead">已实现 · 待验证</div>
+      <div class="cname">邮箱自动连接（IMAP）</div>
+      <p>只读拉取已实现，尚未用真实邮箱账号验证。</p>
+    </div>
+    <div class="cap-box">
+      <div class="chead">已实现 · 未验证</div>
+      <div class="cname">第三方 API 源</div>
+      <p>JSON 拉取与抽取已实现，缺真实第三方 Key 验证。</p>
+    </div>
+    <div class="cap-box">
+      <div class="chead">规划</div>
+      <div class="cname">多渠道推送 · 系统级分享扩展</div>
+      <p>尚未接入，仅作为规划保留。</p>
+    </div>
+  </div>
+  <p class="note" style="margin-top:20px;">与产品「设置」页的能力矩阵同口径：实测通过的归入「真实可用」，未用真实账号或 Key 验证的单列，规划项不混入已实现。</p>
+  <p style="font-size:18px; margin-top:24px;"><span class="green" style="font-weight:600;">边界即承诺：</span>未接入的能力只显示入口，不伪造连接状态或同步时间。</p>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>09 / 10</span>
+  </div>
+</section>
+
+<!-- ============ 10 收尾 ============ -->
+<section class="slide" id="p10">
+  <div style="display:flex; gap:56px; margin-top:60px;">
+    <div style="width:520px; flex:none;">
+      <div class="kicker">09 · 收尾</div>
+      <h1 style="font-size:48px; line-height:1.35; margin-top:26px;">让每个重要行动，<br>都有依据。</h1>
+      <p style="font-size:20px; color:var(--muted); margin-top:30px; line-height:1.7;">
+        知道什么时候、去哪里、准备什么，<br>也知道这些信息从哪里来。
+      </p>
+    </div>
+    <div style="flex:1; padding-top:34px;">
+      <div class="cover" style="height:340px;">
+        <img src="assets/today.png" style="object-position:50% 30%;" alt="行动台">
+      </div>
+      <p class="cap">行动台：近 7 天要做的事、已确认事件与待确认数（真实界面）</p>
+    </div>
+  </div>
+  <div class="foot">
+    <span>到点 · 评审演示</span>
+    <span>10 / 10</span>
+  </div>
+</section>
+
+<script>
+  // 供无头浏览器单页截图使用：slides.html#p1 … #p10
+  var solo = /^#p([1-9]|10)$/.exec(location.hash);
+  if (solo) {
+    document.body.classList.add('solo');
+    document.querySelectorAll('.slide').forEach(function (s) {
+      if (s.id !== 'p' + solo[1]) s.style.display = 'none';
+    });
+  }
+</script>
+</body>
+</html>
