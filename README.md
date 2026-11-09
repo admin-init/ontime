@@ -4,6 +4,8 @@
 
 > 这是一个可直接运行的 Demo：截图识别、跨来源合并、联网核实都是真实模型调用与真实网页抓取，没有预置的"识别结果"。模型 Key、邮箱凭证、原始素材与数据库均不入库。
 
+> **关于这个仓库**：代码、文档、演示素材、宣传片与 PPT 均由 AI 助手（多个 Agent 并行）完成，用于展示一个想法如何被快速做成可运行的原型。它是 Demo，不是生产系统；已知瑕疵与残余风险见 [issue #1](https://github.com/admin-init/ontime/issues/1)。
+
 <p align="center">
   <img src="slides/assets/today.png" width="32%" alt="行动台：按截止时间排序的待办" />
   <img src="slides/assets/inbox.png" width="32%" alt="收件箱：多来源候选与合并建议" />
