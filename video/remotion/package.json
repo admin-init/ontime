@@ -1,0 +1,27 @@
+{
+  "name": "ontime-promo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare-media": "node scripts/prepare-media.mjs",
+    "prepare-audio": "node scripts/prepare-audio.mjs",
+    "captions": "node scripts/build-srt.mjs",
+    "dev": "remotion studio",
+    "render": "npm run prepare-audio && remotion render Promo105 ../out/promo-v5-master.mp4 --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4",
+    "render:nosubs": "npm run prepare-audio && remotion render Promo105-NoSubs ../out/promo-v5-nosubs-master.mp4 --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4",
+    "encode:delivery": "node scripts/encode-delivery.mjs",
+    "still": "remotion still Promo105 ../out/preview.png --frame=3000"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.541",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.541"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "5.9.3"
+  }
+}

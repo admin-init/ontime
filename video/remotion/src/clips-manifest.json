@@ -1,0 +1,202 @@
+[
+  {
+    "id": "01-settings",
+    "source": "01-reset.mp4",
+    "sourceStart": 0,
+    "sourceEnd": 1.933,
+    "rate": 0.55,
+    "file": "media/clips/01-settings.mp4",
+    "lastFrame": "media/clips/01-settings-last.png",
+    "duration": 3.5
+  },
+  {
+    "id": "02-progress",
+    "source": "02-notice-ingest.mp4",
+    "sourceStart": 0,
+    "sourceEnd": 34,
+    "rate": 8,
+    "file": "media/clips/02-progress.mp4",
+    "lastFrame": "media/clips/02-progress-last.png",
+    "duration": 4.267
+  },
+  {
+    "id": "03-confirm",
+    "source": "03-confirm-detail.mp4",
+    "sourceStart": 1,
+    "sourceEnd": 6,
+    "rate": 1.1,
+    "file": "media/clips/03-confirm.mp4",
+    "lastFrame": "media/clips/03-confirm-last.png",
+    "duration": 4.533
+  },
+  {
+    "id": "04-fields",
+    "source": "04-fields-source.mp4",
+    "sourceStart": 0.4,
+    "sourceEnd": 4.9,
+    "rate": 1,
+    "file": "media/clips/04-fields.mp4",
+    "lastFrame": "media/clips/04-fields-last.png",
+    "duration": 4.5
+  },
+  {
+    "id": "04b-materials",
+    "source": "04b-task-pending.mp4",
+    "sourceStart": 3,
+    "sourceEnd": 6.1,
+    "rate": 0.7,
+    "file": "media/clips/04b-materials.mp4",
+    "lastFrame": "media/clips/04b-materials-last.png",
+    "duration": 4.367
+  },
+  {
+    "id": "05-progress",
+    "source": "05-chat-ingest.mp4",
+    "sourceStart": 1.4,
+    "sourceEnd": 51.2,
+    "rate": 16,
+    "file": "media/clips/05-progress.mp4",
+    "lastFrame": "media/clips/05-progress-last.png",
+    "duration": 3.1
+  },
+  {
+    "id": "06-diff",
+    "source": "06-merge-conflict.mp4",
+    "sourceStart": 1.2,
+    "sourceEnd": 3.1,
+    "rate": 0.5,
+    "file": "media/clips/06-diff.mp4",
+    "lastFrame": "media/clips/06-diff-last.png",
+    "duration": 3.8
+  },
+  {
+    "id": "06-conflict",
+    "source": "06-merge-conflict.mp4",
+    "sourceStart": 6.8,
+    "sourceEnd": 9.66,
+    "rate": 0.5,
+    "file": "media/clips/06-conflict.mp4",
+    "lastFrame": "media/clips/06-conflict-last.png",
+    "duration": 5.733
+  },
+  {
+    "id": "07-search",
+    "source": "07-verify-search.mp4",
+    "sourceStart": 0.9,
+    "sourceEnd": 7.2,
+    "rate": 1.35,
+    "file": "media/clips/07-search.mp4",
+    "lastFrame": "media/clips/07-search-last.png",
+    "duration": 4.667
+  },
+  {
+    "id": "08-link",
+    "source": "08-link-verify-apply-export.mp4",
+    "sourceStart": 5.5,
+    "sourceEnd": 14.2,
+    "rate": 2.2,
+    "file": "media/clips/08-link.mp4",
+    "lastFrame": "media/clips/08-link-last.png",
+    "duration": 3.967
+  },
+  {
+    "id": "08-findings",
+    "source": "08-link-verify-apply-export.mp4",
+    "sourceStart": 14.3,
+    "sourceEnd": 17.8,
+    "rate": 1,
+    "file": "media/clips/08-findings.mp4",
+    "lastFrame": "media/clips/08-findings-last.png",
+    "duration": 3.5
+  },
+  {
+    "id": "09-action",
+    "source": "09-action-final.mp4",
+    "sourceStart": 0.2,
+    "sourceEnd": 4,
+    "rate": 0.92,
+    "file": "media/clips/09-action.mp4",
+    "lastFrame": "media/clips/09-action-last.png",
+    "duration": 4.133
+  },
+  {
+    "id": "09-history",
+    "source": "09-action-final.mp4",
+    "sourceStart": 6.4,
+    "sourceEnd": 7.8,
+    "rate": 0.54,
+    "file": "media/clips/09-history.mp4",
+    "lastFrame": "media/clips/09-history-last.png",
+    "duration": 2.6
+  },
+  {
+    "id": "ms-sync",
+    "source": "../_multisource/ms-sync.mp4",
+    "sourceStart": 3.2,
+    "sourceEnd": 7.8,
+    "rate": 1,
+    "file": "media/clips/ms-sync.mp4",
+    "lastFrame": "media/clips/ms-sync-last.png",
+    "duration": 4.6
+  },
+  {
+    "id": "ms-email-start",
+    "source": "../_multisource/ms-email2-start.mp4",
+    "sourceStart": 2.6,
+    "sourceEnd": 4.6,
+    "rate": 1,
+    "file": "media/clips/ms-email-start.mp4",
+    "lastFrame": "media/clips/ms-email-start-last.png",
+    "duration": 2
+  },
+  {
+    "id": "ms-email-done",
+    "source": "../_multisource/ms-email2-done.mp4",
+    "sourceStart": 3.1,
+    "sourceEnd": 5,
+    "rate": 1,
+    "file": "media/clips/ms-email-done.mp4",
+    "lastFrame": "media/clips/ms-email-done-last.png",
+    "duration": 1.9
+  },
+  {
+    "id": "ms-inbox",
+    "source": "../_multisource/ms-inbox2.mp4",
+    "sourceStart": 2.6,
+    "sourceEnd": 5.4,
+    "rate": 1,
+    "file": "media/clips/ms-inbox.mp4",
+    "lastFrame": "media/clips/ms-inbox-last.png",
+    "duration": 2.8
+  },
+  {
+    "id": "ms-reminder",
+    "source": "../_multisource/ms-reminder2.mp4",
+    "sourceStart": 3.4,
+    "sourceEnd": 6,
+    "rate": 1,
+    "file": "media/clips/ms-reminder.mp4",
+    "lastFrame": "media/clips/ms-reminder-last.png",
+    "duration": 2.6
+  },
+  {
+    "id": "ms-agent-result",
+    "source": "../_multisource/ms-agent3.mp4",
+    "sourceStart": 14.6,
+    "sourceEnd": 18.2,
+    "rate": 1.15,
+    "file": "media/clips/ms-agent-result.mp4",
+    "lastFrame": "media/clips/ms-agent-result-last.png",
+    "duration": 3.133
+  },
+  {
+    "id": "10-export-ics",
+    "source": "../_export-ics/export-ics.mp4",
+    "sourceStart": 0.5,
+    "sourceEnd": 4.5,
+    "rate": 1,
+    "file": "media/clips/10-export-ics.mp4",
+    "lastFrame": "media/clips/10-export-ics-last.png",
+    "duration": 4
+  }
+]
