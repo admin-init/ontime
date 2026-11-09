@@ -84,22 +84,6 @@ export const EndCard: React.FC = () => {
       <div
         style={{
           maxWidth: 1320,
-          fontSize: 22,
-          lineHeight: 1.8,
-          color: C.muted,
-          textAlign: 'center',
-          letterSpacing: '0.01em',
-        }}
-      >
-        真实可用：截图识别、官网同步、邮件导入、跨来源关联、冲突裁决、联网核实、站内提醒、站点调研 Agent。
-        <br />
-        邮箱自动连接（IMAP）：已实现 · 待验证。第三方 API 源：已实现 · 未验证。推送：规划。
-      </div>
-
-      <div
-        style={{
-          marginTop: 16,
-          maxWidth: 1320,
           fontSize: 13,
           lineHeight: 1.7,
           color: C.faint,
@@ -112,7 +96,21 @@ export const EndCard: React.FC = () => {
 
       <div
         style={{
-          marginTop: 8,
+          marginTop: 12,
+          maxWidth: 1320,
+          fontSize: 15,
+          lineHeight: 1.7,
+          color: C.muted,
+          textAlign: 'center',
+          letterSpacing: '0.01em',
+        }}
+      >
+        邮箱自动连接与第三方 API 尚未验证。
+      </div>
+
+      <div
+        style={{
+          marginTop: 10,
           maxWidth: 1320,
           fontSize: 12.5,
           lineHeight: 1.6,

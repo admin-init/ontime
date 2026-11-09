@@ -44,9 +44,8 @@ const CLIPS = [
   {id: 'ms-email-done', src: '../_multisource/ms-email2-done.mp4', start: 3.1, end: 5.0, rate: 1.0},
   {id: 'ms-inbox', src: '../_multisource/ms-inbox2.mp4', start: 2.6, end: 5.4, rate: 1.0},
   {id: 'ms-reminder', src: '../_multisource/ms-reminder2.mp4', start: 3.4, end: 6.0, rate: 1.0},
-  {id: 'ms-agent-form', src: '../_multisource/ms-agent3.mp4', start: 2.8, end: 5.0, rate: 2.0},
-  {id: 'ms-agent-result', src: '../_multisource/ms-agent3.mp4', start: 14.6, end: 21.9, rate: 1.15},
-  {id: 'ms-capability', src: '../_multisource/ms-capability.mp4', start: 3.7, end: 7.15, rate: 1.0},
+  {id: 'ms-agent-result', src: '../_multisource/ms-agent3.mp4', start: 14.6, end: 18.2, rate: 1.15},
+  {id: '10-export-ics', src: '../_export-ics/export-ics.mp4', start: 0.5, end: 4.5, rate: 1.0},
 ];
 
 const STILLS = [
@@ -132,16 +131,6 @@ for (const name of ['unnc_notice.png', 'unnc_chat.png']) {
   );
 }
 
-const icsPath = path.join(REC, 'downloads', 'ontime-61d54b.ics');
-const ics = fs.existsSync(icsPath)
-  ? {name: path.basename(icsPath), bytes: fs.statSync(icsPath).size}
-  : {name: 'ontime-61d54b.ics', bytes: 795};
-fs.writeFileSync(
-  path.join(SRC, 'asset-manifest.json'),
-  `${JSON.stringify({ics}, null, 2)}\n`,
-  'utf8',
-);
-
 const manifest = CLIPS.map((spec) => ({
   id: spec.id,
   source: spec.src,
@@ -164,4 +153,3 @@ console.log('\nprepared:');
 for (const item of manifest) {
   console.log(`  ${item.id.padEnd(16)} ${item.duration.toFixed(2)}s  x${item.rate}`);
 }
-console.log(`  ics                ${ics.name}  ${ics.bytes} B`);

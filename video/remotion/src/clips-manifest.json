@@ -180,33 +180,23 @@
     "duration": 2.6
   },
   {
-    "id": "ms-agent-form",
-    "source": "../_multisource/ms-agent3.mp4",
-    "sourceStart": 2.8,
-    "sourceEnd": 5,
-    "rate": 2,
-    "file": "media/clips/ms-agent-form.mp4",
-    "lastFrame": "media/clips/ms-agent-form-last.png",
-    "duration": 1.1
-  },
-  {
     "id": "ms-agent-result",
     "source": "../_multisource/ms-agent3.mp4",
     "sourceStart": 14.6,
-    "sourceEnd": 21.9,
+    "sourceEnd": 18.2,
     "rate": 1.15,
     "file": "media/clips/ms-agent-result.mp4",
     "lastFrame": "media/clips/ms-agent-result-last.png",
-    "duration": 6.333
+    "duration": 3.133
   },
   {
-    "id": "ms-capability",
-    "source": "../_multisource/ms-capability.mp4",
-    "sourceStart": 3.7,
-    "sourceEnd": 7.15,
+    "id": "10-export-ics",
+    "source": "../_export-ics/export-ics.mp4",
+    "sourceStart": 0.5,
+    "sourceEnd": 4.5,
     "rate": 1,
-    "file": "media/clips/ms-capability.mp4",
-    "lastFrame": "media/clips/ms-capability-last.png",
-    "duration": 3.467
+    "file": "media/clips/10-export-ics.mp4",
+    "lastFrame": "media/clips/10-export-ics-last.png",
+    "duration": 4
   }
 ]

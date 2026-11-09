@@ -50,9 +50,7 @@ export type Shot =
     })
   | (Base & {kind: 'dual'})
   | (Base & {kind: 'statement'; variant: 'conflict' | 'verify'})
-  | (Base & {kind: 'export'})
   | (Base & {kind: 'concept'})
-  | (Base & {kind: 'limits'})
   | (Base & {kind: 'end'});
 
 const BASE_SHOTS: Shot[] = [
@@ -107,16 +105,6 @@ const BASE_SHOTS: Shot[] = [
     tag: '实机录屏',
     note: '×8 实际约 30 秒',
     zoom: {from: 1, to: 1.04, focus: [0.5, 0.36]},
-    callouts: [
-      {
-        from: 0.3,
-        to: 2.2,
-        box: [0.17, 0.255, 0.65, 0.06],
-        text: '真实收录过程',
-        tone: 'brand',
-        side: 'bottom',
-      },
-    ],
   },
   {
     id: 'u2',
@@ -351,14 +339,6 @@ const BASE_SHOTS: Shot[] = [
     zoom: {from: 1, to: 1.18, focus: [0.35, 0.55]},
     callouts: [
       {
-        from: 1.0,
-        to: 3.0,
-        box: [0.13, 0.47, 0.45, 0.05],
-        text: '真实检索',
-        tone: 'brand',
-        side: 'left',
-      },
-      {
         from: 4.3,
         to: 4.66,
         box: [0.13, 0.56, 0.45, 0.09],
@@ -376,7 +356,6 @@ const BASE_SHOTS: Shot[] = [
     end: 69.8,
     label: '未找到',
     tag: '真实结果',
-    note: 'not_found · 未给出结论',
     zoom: {from: 1, to: 1.12, focus: [0.35, 0.62]},
     callouts: [
       {
@@ -542,20 +521,31 @@ const BASE_SHOTS: Shot[] = [
   },
   {
     id: 'f4',
-    kind: 'export',
+    kind: 'ui',
+    clip: '10-export-ics',
+    clipDuration: 4,
     start: 93.2,
-    end: 95,
-    label: '导出',
-    tag: '真实文件',
-    note: '页面暂无提示，文件已生成',
+    end: 97.2,
+    label: '导出日历',
+    zoom: {from: 1.3, to: 1.42, focus: [0.76, 0.3]},
+    callouts: [
+      {
+        from: 0.2,
+        to: 1.0,
+        box: [0.797, 0.116, 0.067, 0.046],
+        text: '点导出',
+        tone: 'brand',
+        side: 'bottom',
+      },
+    ],
   },
   {
     id: 'v3-sync',
     kind: 'ui',
     clip: 'ms-sync',
     clipDuration: 4.6,
-    start: 95,
-    end: 99.6,
+    start: 97.2,
+    end: 101.8,
     label: '官网同步',
     tag: '实机录屏',
     note: '二次同步 · 实际 3 秒',
@@ -569,14 +559,6 @@ const BASE_SHOTS: Shot[] = [
         tone: 'brand',
         side: 'left',
       },
-      {
-        from: 1.2,
-        to: 4.4,
-        box: [0.17, 0.515, 0.66, 0.1],
-        text: '1 条抽取失败 · 保留',
-        tone: 'conflict',
-        side: 'left',
-      },
     ],
   },
   {
@@ -584,8 +566,8 @@ const BASE_SHOTS: Shot[] = [
     kind: 'ui',
     clip: 'ms-email-start',
     clipDuration: 2,
-    start: 99.6,
-    end: 101.6,
+    start: 101.8,
+    end: 103.8,
     label: '邮件导入',
     tag: '实机录屏',
     note: '×6 实际约 24 秒',
@@ -606,12 +588,12 @@ const BASE_SHOTS: Shot[] = [
     kind: 'ui',
     clip: 'ms-email-done',
     clipDuration: 1.9,
-    start: 101.6,
-    end: 103.5,
+    start: 103.8,
+    end: 105.7,
     label: '邮件导入',
     tag: '实机录屏',
     note: '已处理 · 邮件来源',
-    zoom: {from: 1, to: 1.08, focus: [0.5, 0.45]},
+    zoom: {from: 1.15, to: 1.18, focus: [0.5, 0.38]},
     callouts: [
       {
         from: 0.2,
@@ -628,8 +610,8 @@ const BASE_SHOTS: Shot[] = [
     kind: 'ui',
     clip: 'ms-inbox',
     clipDuration: 2.8,
-    start: 103.5,
-    end: 106.3,
+    start: 105.7,
+    end: 108.5,
     label: '收件箱',
     tag: '实机录屏',
     note: '6 条待确认 · 邮件来源',
@@ -650,103 +632,44 @@ const BASE_SHOTS: Shot[] = [
     kind: 'ui',
     clip: 'ms-reminder',
     clipDuration: 2.6,
-    start: 106.3,
-    end: 108.9,
+    start: 108.5,
+    end: 111.1,
     label: '站内提醒',
     tag: '实机录屏',
-    note: '真实提醒 · 按截止时间',
+    note: '按截止时间排序',
     zoom: {from: 1, to: 1.1, focus: [0.5, 0.3]},
-    callouts: [
-      {
-        from: 0.2,
-        to: 2.5,
-        box: [0.18, 0.275, 0.64, 0.08],
-        text: '站内提醒 · 真实',
-        tone: 'brand',
-        side: 'left',
-      },
-    ],
-  },
-  {
-    id: 'v3-agent-form',
-    kind: 'ui',
-    clip: 'ms-agent-form',
-    clipDuration: 1.1,
-    start: 108.9,
-    end: 110,
-    label: '站点调研',
-    tag: '实机录屏',
-    note: '×2 实际 10.2 秒',
-    zoom: {from: 1, to: 1.05, focus: [0.5, 0.5]},
-    callouts: [
-      {
-        from: 0.1,
-        to: 1.0,
-        box: [0.18, 0.52, 0.64, 0.07],
-        text: 'UNNC 活动列表页',
-        tone: 'brand',
-        side: 'top',
-      },
-    ],
   },
   {
     id: 'v3-agent-result',
     kind: 'ui',
     clip: 'ms-agent-result',
-    clipDuration: 6.35,
-    start: 110,
-    end: 116.35,
+    clipDuration: 3.13,
+    start: 111.1,
+    end: 114.2,
     label: '站点调研',
     tag: '实机录屏',
-    note: '5 条 · 用时 10.2 秒',
-    zoom: {from: 1, to: 1.06, focus: [0.5, 0.5]},
-  },
-  {
-    id: 'g1',
-    kind: 'ui',
-    clip: 'ms-capability',
-    clipDuration: 3.45,
-    start: 116.35,
-    end: 119.8,
-    label: '能力矩阵',
-    tag: '实机录屏',
-    note: '官网同步 / 站点调研 · 已实测',
-    zoom: {from: 1.15, to: 1.2, focus: [0.5, 0.5]},
-    callouts: [
-      {
-        from: 0.2,
-        to: 3.4,
-        box: [0.18, 0.09, 0.64, 0.3],
-        text: '已实测',
-        tone: 'brand',
-        side: 'left',
-      },
-      {
-        from: 0.8,
-        to: 3.4,
-        box: [0.18, 0.39, 0.64, 0.22],
-        text: '未验证 / 规划',
-        tone: 'muted',
-        side: 'left',
-      },
-    ],
-  },
-  {
-    id: 'g2',
-    kind: 'limits',
-    start: 119.8,
-    end: 122.85,
-    label: '边界',
-    tag: '边界',
+    zoom: {from: 1.3, to: 1.38, focus: [0.5, 0.68]},
   },
   {
     id: 'g3',
     kind: 'end',
-    start: 122.85,
-    end: 127.35,
+    start: 114.2,
+    end: 118.7,
     label: '',
     hideBar: true,
   },
+];
+
+/** 左上角章节标签。时间是加过片头 3 秒后的成片时间。 */
+export const CHAPTERS = [
+  {start: 3, end: 10, name: '散落的信息'},
+  {start: 10, end: 21, name: '连回原文'},
+  {start: 21, end: 27.9, name: '截图收录'},
+  {start: 27.9, end: 43, name: '结构化事件'},
+  {start: 43, end: 65, name: '冲突裁决'},
+  {start: 65, end: 85, name: '联网核实'},
+  {start: 85, end: 100.2, name: '行动清单'},
+  {start: 100.2, end: 117.2, name: '多来源'},
 ];
 
 export const TITLE_SECONDS = 3;
