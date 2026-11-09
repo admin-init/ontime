@@ -121,3 +121,42 @@ ffmpeg -y -ss 00:00:42.000 -i "out.mp4" -frames:v 1 "stills/42s.png"
 # 检查音轨是否存在
 ffprobe -v error -select_streams a -show_entries stream=codec_name,channels,sample_rate -of default=noprint_wrappers=1 "out.mp4"
 ```
+
+## 11. 交付编码（Remotion 母版 → 平台）
+
+> **Remotion 直出是 full-range（yuvj420p / pc），不要直接上传平台。**
+> 小红书等平台按 limited range + bt709 解码，纸底 `#F7F5F1` 会被裁成纯白（过曝），色域也会错。
+
+保留 Remotion 母版，另跑一遍交付编码：
+
+```powershell
+cd video/remotion
+npm run render            # 输出 ../out/promo-v5-master.mp4（Remotion 母版）
+npm run encode:delivery   # 输出 ../out/promo-v5.mp4（平台交付版）
+```
+
+其他版本：
+
+```powershell
+npm run encode:delivery -- ../out/promo-v6-master.mp4 ../out/promo-v6.mp4
+```
+
+交付版规格：
+
+- 视频：`yuv420p` / `color_range=tv` / `bt709` / `bt709` / `bt709`；10 Mbps CBR；High@4.1。
+- 音频：AAC 192k。
+- 输入母版：yuvj420p / pc / 容器常写 bt470bg（实际 RGB→YUV 是 BT.709）。
+- 关键点：`in_color_matrix=bt709`。按容器里的 bt470bg 当 bt601 转会轻微偏色（纸底 246/244/241 → 243/243/238）；按 bt709 转后是 245/243/241。
+- 关键点：`-x264-params colorprim=bt709:transfer=bt709:colormatrix=bt709` 必须写，否则 ffprobe 的 `color_transfer` / `color_primaries` 还是 `unknown`。
+- 不用 CRF 16：本片大面积静态 UI，CRF 16 只有约 2.4 Mbps，达不到 8–12 Mbps 的交付目标；用 10 Mbps CBR。
+
+验收：
+
+```powershell
+ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt,color_range,color_space,color_transfer,color_primaries,bit_rate -of default=noprint_wrappers=1 "out/promo-v5.mp4"
+# 期望：yuv420p / tv / bt709 / bt709 / bt709 / 约 10 Mbps
+
+# 纸底采样（Python + Pillow）
+uv run --with pillow python -c "from PIL import Image, ImageStat; im=Image.open('out/v5-delivery-120.png').convert('RGB'); print(ImageStat.Stat(im.crop((80,80,140,140))).mean)"
+# 期望：约 245/243/241，不能是 255/255/255
+```

@@ -1,7 +1,8 @@
 # 到点宣传片 · 剪辑交接（v5）
 
 最后更新：2026-11-09｜分支 `feat/video`｜当前成片 `video/out/promo-v5.mp4`
-规格：**122.7 秒 / 3681 帧 / 1920×1080 / 30fps / H.264 + AAC / 33.5 MiB**
+规格：**122.7 秒 / 3681 帧 / 1920×1080 / 30fps / H.264 High@4.1 / AAC / 约 10 Mbps / 148.7 MiB**
+母版：`video/out/promo-v5-master.mp4`（Remotion 直出，yuvj420p / pc，约 33.7 MB）
 
 旧版保留：`promo-v4.mp4`（121.7s，含片尾字幕/旧边界行）、`promo-v3.mp4`（130.4s）、`promo-105s-v1.mp4`、`promo-105s-v2.mp4`、`promo-105s-v2-20pct.mp4`、`promo-105s-silent.mp4`。
 
@@ -67,20 +68,23 @@ npm install --registry=https://registry.npmmirror.com
 npm run prepare-media     # 需要 ffmpeg/ffprobe + recordings/_trial + _multisource + _export-ics
 npm run prepare-audio     # 需要 video/assets/bgm/bgm-main.mp3 + video/assets/sfx/whoosh-transition.mp3
 npm run captions          # 33 条 SRT
-npm run render            # 输出 ../out/promo-v5.mp4
+npm run render            # 输出 ../out/promo-v5-master.mp4（Remotion 母版，full-range）
+npm run encode:delivery   # 输出 ../out/promo-v5.mp4（平台交付，yuv420p/tv/bt709）
 ```
 
 `npm run render` 实际参数：
 
 ```powershell
-npx remotion render Promo105 ../out/promo-v5.mp4 `
+npx remotion render Promo105 ../out/promo-v5-master.mp4 `
   --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4
+npm run encode:delivery   # ../out/promo-v5-master.mp4 → ../out/promo-v5.mp4
 ```
 
 - 分辨率 1920×1080，30fps，CRF 20，yuv420p，并发 4。
 - 无字幕版：`npm run render:nosubs` → `../out/promo-v5-nosubs.mp4`。
 - 单帧：`npm run still`（默认 frame 3000）。
-- 当前成片 122.7s，3681 帧；AAC 音轨。
+- 当前成片 122.7s，3681 帧；AAC 192k；交付版约 10 Mbps。
+- **Remotion 直出是 full-range，必须跑 `npm run encode:delivery` 才能上传平台**；交付版是 yuv420p / tv / bt709。
 - 旧版成片在 `video/out/`，不要覆盖。
 
 ---
@@ -238,6 +242,8 @@ MONO = '"Cascadia Mono", "Consolas", ...'
 8. **大文件别提交。** `video/out/`、`public/media/`、`public/audio/`、`recordings/`、`node_modules/` 都已忽略。
 9. **字体。** 换机器后先渲染一帧看标注换行和字幕宽度。
 10. **旧版不要覆盖。** v3 是 130.4s；v4 是 121.7s/3651 帧；v5 是 122.7s/3681 帧，输出 `promo-v5.mp4`。
+11. **Remotion 直出是 full-range，不能直接上传。** `npm run render` 只出 `*-master.mp4`（yuvj420p / pc）；必须 `npm run encode:delivery` 转成 yuv420p / tv / bt709 的交付版，否则小红书会把纸底裁成纯白。
+12. **交付编码的两个关键参数。** `in_color_matrix=bt709`（母版实际是 BT.709，不是容器里的 bt470bg）和 `-x264-params colorprim/transfer/colormatrix=bt709`（否则 ffprobe 里 transfer/primaries 还是 unknown）。不要退回 bt601 或 CRF 16。
 
 ---
 

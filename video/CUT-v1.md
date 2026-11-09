@@ -1,7 +1,9 @@
 # CUT v1 · 到点 122.7 秒（v5）
 
 版本：2026-11-09｜分支 `feat/video`｜成片 `video/out/promo-v5.mp4`
-规格：1920×1080 / 30fps / 3681 帧 / 122.7s / H.264 / AAC
+母版：`video/out/promo-v5-master.mp4`（Remotion 直出，yuvj420p / pc）
+交付：1920×1080 / 30fps / 3681 帧 / 122.7s / H.264 High@4.1 / AAC
+交付色彩：yuv420p / tv / bt709 / bt709 / bt709 / 约 10 Mbps CBR
 字幕：`video/subtitles/promo.zh.srt`（33 条，同时烧进画面）
 旧版：`video/out/promo-v3.mp4`、`video/out/promo-v4.mp4` 保留
 
