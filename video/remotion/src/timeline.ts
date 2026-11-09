@@ -26,6 +26,8 @@ type Base = {
   tag?: string;
   note?: string;
   hideBar?: boolean;
+  /** 用纸色渐隐遮住画面上下缘（百分比高度），用于裁掉报告式 App 区域。 */
+  mask?: {top?: number; bottom?: number};
 };
 
 export type Shot =
@@ -640,12 +642,23 @@ const BASE_SHOTS: Shot[] = [
     zoom: {from: 1, to: 1.1, focus: [0.5, 0.3]},
   },
   {
+    id: 'v3-agent-progress',
+    kind: 'still',
+    image: 'agent-progress.png',
+    start: 111.1,
+    end: 112.1,
+    label: '站点调研',
+    tag: '实机录屏',
+    zoom: {from: 1.15, to: 1.18, focus: [0.5, 0.5]},
+    mask: {top: 12, bottom: 32},
+  },
+  {
     id: 'v3-agent-result',
     kind: 'ui',
     clip: 'ms-agent-result',
     clipDuration: 3.13,
-    start: 111.1,
-    end: 114.2,
+    start: 112.1,
+    end: 115.2,
     label: '站点调研',
     tag: '实机录屏',
     zoom: {from: 1.3, to: 1.38, focus: [0.5, 0.68]},
@@ -653,8 +666,8 @@ const BASE_SHOTS: Shot[] = [
   {
     id: 'g3',
     kind: 'end',
-    start: 114.2,
-    end: 118.7,
+    start: 115.2,
+    end: 119.7,
     label: '',
     hideBar: true,
   },
@@ -669,7 +682,7 @@ export const CHAPTERS = [
   {start: 43, end: 65, name: '冲突裁决'},
   {start: 65, end: 85, name: '联网核实'},
   {start: 85, end: 100.2, name: '行动清单'},
-  {start: 100.2, end: 117.2, name: '多来源'},
+  {start: 100.2, end: 118.2, name: '多来源'},
 ];
 
 export const TITLE_SECONDS = 3;

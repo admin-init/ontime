@@ -105,7 +105,7 @@ export const EndCard: React.FC = () => {
           letterSpacing: '0.01em',
         }}
       >
-        邮箱自动连接与第三方 API 尚未验证。
+        第三方 API 源尚未验证。
       </div>
 
       <div

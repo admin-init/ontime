@@ -53,6 +53,7 @@ const STILLS = [
   {id: '04b-task', src: '04b-task-pending.mp4', at: 3.2},
   {id: '05-merge', src: '05-chat-ingest.mp4', at: 52.0},
   {id: '07-notfound', src: '07-verify-search.mp4', at: 7.6},
+  {id: 'agent-progress', src: '../_multisource/ms-agent3.mp4', at: 7.5},
 ];
 
 function run(bin, args) {

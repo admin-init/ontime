@@ -1,9 +1,9 @@
-# 到点宣传片 · 剪辑交接（v4）
+# 到点宣传片 · 剪辑交接（v5）
 
-最后更新：2026-11-09｜分支 `feat/video`｜当前成片 `video/out/promo-v4.mp4`
-规格：**121.7 秒 / 3651 帧 / 1920×1080 / 30fps / H.264 + AAC / 33.5 MiB**
+最后更新：2026-11-09｜分支 `feat/video`｜当前成片 `video/out/promo-v5.mp4`
+规格：**122.7 秒 / 3681 帧 / 1920×1080 / 30fps / H.264 + AAC / 33.5 MiB**
 
-旧版保留：`promo-v3.mp4`（130.4s）、`promo-105s-v1.mp4`、`promo-105s-v2.mp4`、`promo-105s-v2-20pct.mp4`、`promo-105s-silent.mp4`。
+旧版保留：`promo-v4.mp4`（121.7s，含片尾字幕/旧边界行）、`promo-v3.mp4`（130.4s）、`promo-105s-v1.mp4`、`promo-105s-v2.mp4`、`promo-105s-v2-20pct.mp4`、`promo-105s-silent.mp4`。
 
 ---
 
@@ -17,13 +17,13 @@ src/
   Root.tsx               两个 Composition：
                            Promo105        （带字幕，默认）
                            Promo105-NoSubs （同时间线，showSubtitles=false）
-                         1920×1080 / 30fps / durationInFrames=TOTAL_FRAMES(3651)
+                         1920×1080 / 30fps / durationInFrames=TOTAL_FRAMES(3681)
   Promo.tsx              总装：Opening 序列 + 所有非 open 镜头 Sequence
                          + 全局 TopBar + Subtitles + Soundtrack
   timeline.ts            唯一时间线源：BASE_SHOTS（0 起点）+ TITLE_SECONDS=3
                          + SHOTS + CHAPTERS + TOTAL_FRAMES
   theme.ts               色板、FONT、MONO、STAGE（x=210,y=44,w=1500,h=937.5）
-  captions.json          33 条字幕（秒），build-srt 的数据源
+  captions.json          33 条字幕（秒），build-srt 的数据源；片尾不再有字幕
   audio-manifest.json    prepare-audio 生成；BGM 入点/音量/淡入淡出、3 个 whoosh、署名
   clips-manifest.json    prepare-media 生成；每个片段的源/倍率/实际时长
   components/
@@ -38,7 +38,7 @@ src/
     Thesis.tsx           13–21s 主张 1/2
     DualValue.tsx        59.5–62.5s 两地点对照
     Statement.tsx        冲突/核实原则卡
-    EndCard.tsx          117.2–121.7s 片尾 + 一行边界说明 + BGM 署名
+    EndCard.tsx          118.2–122.7s 片尾 + 一行边界说明 + BGM 署名
     Concept.tsx          旧「指定网站查询规划」卡，**当前未使用**
 scripts/
   prepare-media.mjs      复制 recordings → public/media；ffmpeg 预切/变速/抽末帧
@@ -67,20 +67,20 @@ npm install --registry=https://registry.npmmirror.com
 npm run prepare-media     # 需要 ffmpeg/ffprobe + recordings/_trial + _multisource + _export-ics
 npm run prepare-audio     # 需要 video/assets/bgm/bgm-main.mp3 + video/assets/sfx/whoosh-transition.mp3
 npm run captions          # 33 条 SRT
-npm run render            # 输出 ../out/promo-v4.mp4
+npm run render            # 输出 ../out/promo-v5.mp4
 ```
 
 `npm run render` 实际参数：
 
 ```powershell
-npx remotion render Promo105 ../out/promo-v4.mp4 `
+npx remotion render Promo105 ../out/promo-v5.mp4 `
   --codec=h264 --crf=20 --pixel-format=yuv420p --concurrency=4
 ```
 
 - 分辨率 1920×1080，30fps，CRF 20，yuv420p，并发 4。
-- 无字幕版：`npm run render:nosubs` → `../out/promo-v4-nosubs.mp4`。
+- 无字幕版：`npm run render:nosubs` → `../out/promo-v5-nosubs.mp4`。
 - 单帧：`npm run still`（默认 frame 3000）。
-- 当前成片 121.7s，3651 帧；AAC 音轨。
+- 当前成片 122.7s，3681 帧；AAC 音轨。
 - 旧版成片在 `video/out/`，不要覆盖。
 
 ---
@@ -122,8 +122,9 @@ npx remotion render Promo105 ../out/promo-v4.mp4 `
 | 106.8–108.7 | 多来源 | `ms-email2-done` 3.1–5.0s | 1× | (0.50,0.38) 1.15→1.18 |
 | 108.7–111.5 | 多来源 | `ms-inbox2` 2.6–5.4s | 1× | (0.50,0.30) 1.00→1.10 |
 | 111.5–114.1 | 多来源 | `ms-reminder2` 3.4–6.0s | 1× | (0.50,0.30) 1.00→1.10 |
-| 114.1–117.2 | 多来源 | `ms-agent3` 14.6–18.2s | **1.15×** | (0.50,0.68) 1.30→1.38 |
-| 117.2–121.7 | （隐藏） | `EndCard` + 一行边界说明 + BGM 署名 | — | — |
+| 114.1–115.1 | 多来源 | `ms-agent3` @7.5s 静帧（进度态） | 静帧 | (0.50,0.50) 1.15→1.18 |
+| 115.1–118.2 | 多来源 | `ms-agent3` 14.6–18.2s | **1.15×** | (0.50,0.68) 1.30→1.38 |
+| 118.2–122.7 | （隐藏） | `EndCard` + 一行边界说明 + BGM 署名 | — | — |
 
 章节标签由 `components/Chrome.tsx` 的 `TopBar` 统一画；`CHAPTERS` 在 `timeline.ts`。字号 38px / 600，位置 left=48、top=40；「到点」`#20201E`，「/ 功能名」`#72706B`；圆点 9px。`TitleCard` 与 `EndCard` 的 shot 设 `hideBar: true`。旧的右上角 tag 胶囊已删除，只保留加速倍率/事实性 note。
 
@@ -150,7 +151,7 @@ npx remotion render Promo105 ../out/promo-v4.mp4 `
 - 左：绿点 + `到点`（38px/600）+ `/` + 章节名（38px/600，`#72706B`）。
 - 右：shot.note（真实耗时/倍率，13px）；不再显示 tag 胶囊。
 - 位置：left=48，top=40；只压到录屏框顶部空白纸面，不挡 App 内容和字幕。
-- `hideBar` 的镜头：片头 0–3、片尾 117.2–121.7。
+- `hideBar` 的镜头：片头 0–3、片尾 118.2–122.7。
 
 ### 字体
 
@@ -200,15 +201,16 @@ MONO = '"Cascadia Mono", "Consolas", ...'
 
 ---
 
-## 6. v4 的关键改动
+## 6. v5 的关键改动
 
 1. **章节标签放大**：38px/600，left=48/top=40，保留「● 到点 / 功能名」。
 2. **删掉「能力边界，写清楚。」整屏卡**（IMAP / 第三方 API / 推送），也删掉「边界」章节标签。
 3. **删掉能力矩阵镜头**（`ms-capability`），并把 Agent 结果镜头截断在能力矩阵之前。
 4. **删除导出旧文件卡**，补录 4 秒真实交互：点击「导出日历」→「已导出日历」。
-5. **字幕补全**：新增导出、邮件已处理；删除边界说明；合并 Agent 结果说明。共 33 条。
-6. **片尾减负**：去掉「真实可用：…」能力清单；只保留 15px 一行「邮箱自动连接与第三方 API 尚未验证。」，放在署名上方。
+5. **字幕补全**：新增导出、邮件已处理、Agent 进度。共 33 条。
+6. **片尾减负**：去掉「真实可用：…」能力清单；只保留 15px 一行「第三方 API 源尚未验证。」，放在署名上方；片尾不再有字幕。
 7. **清掉报告式角标**：「1 条抽取失败 · 保留」「真实文件」「真实检索」「真实收录过程」「站内提醒 · 真实」「not_found · 未给出结论」「5 条 · 用时 10.2 秒」等。
+8. **Agent 进度 +1s**：114.1–115.1s 插入 1 秒真实进度态静帧（URL + 「调研中…」+ 三段步骤条），上下用纸色渐隐裁掉能力矩阵与站点状态徽标，然后才切到 5 条结果。
 
 ---
 
@@ -228,14 +230,14 @@ MONO = '"Cascadia Mono", "Consolas", ...'
 
 1. **先跑 `prepare-media`。** `public/media` 不入库；需要本机 `recordings/_trial`、`_multisource`、`_export-ics` 存在。
 2. **`prepare-audio` 会覆盖 `src/audio-manifest.json`。** 不要手改 manifest 后直接 render。
-3. **字幕是两处。** `src/captions.json` 是源，`video/subtitles/promo.zh.srt` 是生成物；改字幕必须 `npm run captions`。当前 33 条，最后一条 117.2–121.7。
+3. **字幕是两处。** `src/captions.json` 是源，`video/subtitles/promo.zh.srt` 是生成物；改字幕必须 `npm run captions`。当前 33 条，最后一条 115.1–118.2；片尾无字幕。
 4. **时间线有 3 秒标题偏移。** `BASE_SHOTS` 是 0 起点；`SHOTS` 统一 +3；`TOTAL_FRAMES` 取最后一个 shot 的 end。
 5. **片段的 `clipDuration` 是手写的。** 改 `prepare-media` 的入点/倍率后，要同步改 `timeline.ts` 里对应 shot 的 `clipDuration`。
 6. **标注坐标是源画面归一化值。** 导出按钮的「点导出」框是在 1440×900 源画面上对过位的；重录后需要重对。
 7. **渲染前先 `npx tsc --noEmit`。**
 8. **大文件别提交。** `video/out/`、`public/media/`、`public/audio/`、`recordings/`、`node_modules/` 都已忽略。
 9. **字体。** 换机器后先渲染一帧看标注换行和字幕宽度。
-10. **旧版不要覆盖。** v3 是 130.4s；v4 是 121.7s/3651 帧，输出 `promo-v4.mp4`。
+10. **旧版不要覆盖。** v3 是 130.4s；v4 是 121.7s/3651 帧；v5 是 122.7s/3681 帧，输出 `promo-v5.mp4`。
 
 ---
 
@@ -245,6 +247,6 @@ MONO = '"Cascadia Mono", "Consolas", ...'
 npx tsc --noEmit
 ffprobe -v error -show_entries format=duration,size `
   -show_entries stream=codec_type,codec_name,width,height,r_frame_rate,nb_frames `
-  -of default=noprint_wrappers=1 ..\out\promo-v4.mp4
-# 期望：121.7s / 3651 帧 / 1920x1080 / h264 + aac
+  -of default=noprint_wrappers=1 ..\out\promo-v5.mp4
+# 期望：122.7s / 3681 帧 / 1920x1080 / h264 + aac
 ```

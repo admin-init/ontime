@@ -113,6 +113,33 @@ export const MediaShot: React.FC<Props> = ({shot}) => {
             />
           ))}
         </div>
+
+        {shot.mask?.top ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              height: `${shot.mask.top}%`,
+              background: `linear-gradient(to bottom, ${C.paper} 0%, ${C.paper} 82%, rgba(247,245,241,0) 100%)`,
+              pointerEvents: 'none',
+            }}
+          />
+        ) : null}
+        {shot.mask?.bottom ? (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: `${shot.mask.bottom}%`,
+              background: `linear-gradient(to top, ${C.paper} 0%, ${C.paper} 82%, rgba(247,245,241,0) 100%)`,
+              pointerEvents: 'none',
+            }}
+          />
+        ) : null}
       </div>
     </ScreenFrame>
   );
