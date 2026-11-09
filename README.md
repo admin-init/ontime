@@ -119,3 +119,14 @@ deliverables/   720p 预览片（见下）
 - [`docs/技术方案_v0.2_最小原型.md`](docs/技术方案_v0.2_最小原型.md) — 选型、数据模型、流水线、风险
 - [`docs/到点_项目策划文档_v0.1_2026-11-08.md`](docs/到点_项目策划文档_v0.1_2026-11-08.md) — 定位、场景、MVP 与验收
 - [`HANDOFF.md`](HANDOFF.md) — 最新状态、证据与下一步；[`AGENTS.md`](AGENTS.md) — 执行约定
+
+## 许可
+
+本项目代码采用 **BSD 3-Clause License**，全文见 [`LICENSE`](LICENSE)。
+版权行：`Copyright (c) 2026 到点 Contributors`。
+
+**不在此协议范围内**：
+
+- `fixtures/demo/` 中引用的第三方通知内容（如宁波诺丁汉大学公开活动页）版权归原站点，仅用于演示；
+- BGM 与音效按各自许可使用（CC BY 4.0 / Mixkit），详见上文「素材与许可」；
+- 「到点」名称与标识不随代码授权；衍生项目不得暗示官方背书（BSD-3 第 3 条）。
