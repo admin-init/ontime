@@ -106,12 +106,7 @@ deliverables/   720p 预览片（见下）
 
 ## 已知限制
 
-1. **DNS rebinding 残余风险**：站点 Agent 的内网拦截按 URL 字面匹配，未做 DNS 解析后的私网校验；正式部署需要网络层出口限制。
-2. **Agent 不开放 `execute`**：Code Mode 的 `fetch()` 会绕过 `webfetch` 的白名单拒绝，因此站点调研 Agent 只产出选择器与规则，抓取由后端执行，不是脚本沙箱。
-3. **单用户**：单 profile、无登录、无多租户；提醒依赖浏览器通知，不做跨设备推送。
-4. **模型偶发空响应**：如实写 `source.status=failed` / `SyncRun.error`，下次同步重试，不补假数据。
-5. **官网 `careers` 栏目是落地页**，没有列表，同步结果为 `found=0`；换栏目即可，不是代码缺陷。
-6. **不做数据库迁移**：Demo 阶段 `create_all` + 重置接口，升级不保证兼容旧库。
+Demo 阶段接受的技术边界与残余风险统一记录在 [issue #1](https://github.com/admin-init/ontime/issues/1)，不在此重复。
 
 ## 文档
 
