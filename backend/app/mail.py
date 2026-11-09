@@ -10,11 +10,13 @@ from __future__ import annotations
 import asyncio
 import email
 import hashlib
+import imaplib
 import io
 import json
 import os
 from datetime import datetime, timedelta, timezone
 from email import policy
+from email.header import decode_header, make_header
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
@@ -29,6 +31,11 @@ from app.pipeline import INGEST_STEPS, run_ingest
 
 IMAP_CONFIG_PATH = Path.home() / ".ontime" / "imap.json"
 MAX_MBOX_MESSAGES = 50
+
+# RFC 2971 ID：网易（163/126）要求登录后先声明客户端身份，否则 SELECT 会返回
+# "Unsafe Login"。imaplib 未内置 ID 命令，需要先注册再发送。
+imaplib.Commands.setdefault("ID", ("NONAUTH", "AUTH", "SELECTED"))
+IMAP_CLIENT_ID = '("name" "ontime" "version" "1.0" "vendor" "ontime")'
 
 
 # ---------------------------------------------------------------- 凭证文件
@@ -85,7 +92,11 @@ def _header(msg, key: str) -> str | None:
     if value is None:
         return None
     try:
-        return str(value).strip() or None
+        text = str(value)
+        # imap_tools 用 compat32 解析，主题/发件人可能仍是 =?UTF-8?B?...?= 编码字。
+        if "=?" in text:
+            text = str(make_header(decode_header(text)))
+        return text.strip() or None
     except Exception:  # noqa: BLE001
         return None
 
@@ -267,11 +278,33 @@ def import_parsed_message(db: Session, parsed: dict, *, raw: bytes | None = None
 # ---------------------------------------------------------------- IMAP
 
 
+def _identify_client(client) -> None:
+    """发送 RFC 2971 ID 声明客户端身份；服务器不支持 ID 时忽略。"""
+    try:
+        typ, data = client._simple_command("ID", IMAP_CLIENT_ID)
+        client._untagged_response(typ, data, "ID")
+    except imaplib.IMAP4.error:
+        pass
+
+
+def _login_readonly(mailbox, username: str, password: str):
+    """登录后先发 ID 再选收件箱。
+
+    imap_tools 的 login() 默认立刻 SELECT INBOX；网易要求 SELECT 前先 ID，
+    因此这里以 initial_folder=None 登录，补齐 ID 后手动选收件箱。
+    """
+    mailbox.login(username, password, initial_folder=None)
+    _identify_client(mailbox.client)
+    mailbox.folder.set("INBOX")
+    return mailbox
+
+
 def _imap_test_sync(host: str, port: int, username: str, password: str) -> tuple[bool, str]:
     from imap_tools import MailBox
 
     try:
-        with MailBox(host, port=port).login(username, password) as mailbox:
+        with MailBox(host, port=port) as mailbox:
+            _login_readonly(mailbox, username, password)
             folders = [f.name for f in mailbox.folder.list()]
             return True, f"连接成功，可见 {len(folders)} 个文件夹：{', '.join(folders[:8])}"
     except Exception as e:  # noqa: BLE001
@@ -289,7 +322,8 @@ def _imap_fetch_sync(
 
     since = datetime.now(timezone.utc) - timedelta(days=max(1, since_days))
     out: list[dict] = []
-    with MailBox(host, port=port).login(username, password) as mailbox:
+    with MailBox(host, port=port) as mailbox:
+        _login_readonly(mailbox, username, password)
         # mark_seen=False 即 BODY.PEEK，不改变邮件已读状态
         for msg in mailbox.fetch(AND(date_gte=since.date()), mark_seen=False, bulk=True):
             if query and query.strip() and query.strip().lower() not in (msg.subject or "").lower():

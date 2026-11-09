@@ -322,7 +322,7 @@ CAPABILITIES = [
     {"key": "site_agent", "name": "站点调研 Agent", "level": "verified", "note": "真实调用本机 opencode 调研公开列表页，隔离环境、失败如实返回"},
     {"key": "api_source", "name": "第三方 API 源", "level": "unverified", "note": "已实现 JSON 拉取与抽取，缺真实第三方 Key 验证"},
     {"key": "reminder", "name": "站内提醒", "level": "verified", "note": "按任务截止提前 2 小时生成"},
-    {"key": "imap", "name": "邮箱自动连接与检索", "level": "unverified", "note": "已实现只读 IMAP，未用真实账号验证"},
+    {"key": "imap", "name": "邮箱自动连接与检索", "level": "verified", "note": "2026-11-09 用 163.com 测试账号真实只读同步；Message-ID 去重，BODY.PEEK 不标已读"},
     {"key": "push", "name": "多渠道推送与后台提醒", "level": "entry", "note": "演示暂未接入"},
 ]
 
