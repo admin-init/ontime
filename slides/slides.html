@@ -165,16 +165,31 @@
   /* ===== 封面 / 收尾 ===== */
   .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 600; }
   .brand::before { content: ""; width: 12px; height: 12px; background: var(--green); }
+
+  /* 封面：巨型品牌字 */
+  .cover-brand {
+    display: flex; align-items: flex-end; gap: 18px;
+    margin-top: 44px;
+    font-size: 180px; line-height: 1; font-weight: 700;
+    letter-spacing: -0.02em; color: var(--green);
+  }
+  .cover-brand .mark {
+    width: 12px; height: 12px; background: var(--green);
+    flex: none; margin-bottom: 22px;
+  }
+  .cover-title { margin-top: 44px; }
+  .cover-title h1 { font-size: 50px; font-weight: 700; margin-top: 0; line-height: 1.2; }
+  .cover-title .sub { font-size: 24px; font-weight: 400; margin-top: 18px; }
 </style>
 </head>
 <body>
 
 <!-- ============ 1 封面 ============ -->
 <section class="slide" id="p1">
-  <div class="brand">到点</div>
-  <div style="margin-top:150px;">
-    <h1 style="font-size:56px;">面向大学生的多来源校园信息行动台</h1>
-    <p class="sub" style="font-size:24px; margin-top:22px;">官网、邮件、聊天截图，汇成有据可查的行动清单</p>
+  <div class="cover-brand"><span class="mark"></span><span>到点</span></div>
+  <div class="cover-title">
+    <h1>面向大学生的多来源校园信息行动台</h1>
+    <p class="sub">官网、邮件、聊天截图，汇成有据可查的行动清单</p>
   </div>
   <div class="foot">
     <span>到点 · 产品评审演示</span>
