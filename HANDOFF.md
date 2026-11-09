@@ -3,7 +3,7 @@
 ## 一句话状态
 
 截图闭环 + 多来源 + 站点调研 Agent 全部可运行，真实模型与真实检索验证过。
-tag：`v0.1-demo`（演示基线）→ `v0.2-phase1`（官网同步/邮件/提醒/声明式站点）→ `v0.2-phase2`（站点调研 Agent/API 源）。
+tag：`v0.1-demo`（演示基线）→ `v0.2-phase1`（官网同步/邮件/提醒/声明式站点）→ `v0.2-phase2`（站点调研 Agent/API 源）→ `v1.0-delivery`（发布）；分支 `main`。
 
 ## 怎么跑
 
@@ -66,8 +66,9 @@ npm run dev                                  # http://127.0.0.1:5173
 
 ## 产物位置
 
-- 宣传片：`ontime-wt-video/video/out/`（v3 更新中）
-- PPT：`ontime-wt-slides/slides/out/ontime-deck.pdf`
+- 宣传片：本机 `video/out/promo-v5.mp4`（1080p，149MB，不入库；生成方式见 `video/README.md`）
+- 720p 预览：`deliverables/preview-720p.mp4`（17.4MB，入库）
+- PPT：`slides/out/ontime-deck.pdf`（入库）
 - 素材：`fixtures/demo/`（UNNC 通知/群聊、自拟补充、真实历史）
 - 调度台账：`docs/调度台账.md`；契约：`docs/API契约_v1*.md`
 

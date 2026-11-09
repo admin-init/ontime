@@ -59,7 +59,7 @@ npx remotion render Promo105 ../out/promo-v3.mp4 `
 - `whoosh-transition.mp3` 用在 **21s / 43s / 65s** 三个关键转场，音量 0.12，提前 1.1s 起，峰值落在切点上。
 - `npm run prepare-audio` 会把音频复制到 `public/audio/` 并写 `src/audio-manifest.json`；`npm run render` 会自动先跑它。
 - 片尾能力声明下方已加署名：`Music: "Continue Life" — Kevin MacLeod (incompetech.com), CC BY 4.0`。
-- BGM/SFX 文件不入库（`assets/bgm/*.mp3`、`assets/sfx/*.mp3`、`public/audio/` 已忽略）。
+- BGM/SFX 源文件已入库（`assets/bgm/*.mp3`、`assets/sfx/*.mp3`，许可允许再分发并保留署名）；`public/audio/` 是生成物，已忽略。
 
 ## 4. 工程结构
 

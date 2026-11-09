@@ -20,4 +20,4 @@ v3 声音：
 - whoosh 0.12，提前 1.1s 起，峰值落在 21s / 43s / 65s 切点。
 - 片尾署名：`Music: "Continue Life" — Kevin MacLeod (incompetech.com), CC BY 4.0`。
 
-BGM/SFX 文件不入库（`assets/bgm/*.mp3`、`assets/sfx/*.mp3`、`public/audio/` 已忽略）。
+本目录的 BGM/SFX 文件随工程入库（许可允许再分发，署名要求已在 `../README.md` 与本文件记录）；`public/audio/` 是 `prepare-audio` 的生成物，不入库。
